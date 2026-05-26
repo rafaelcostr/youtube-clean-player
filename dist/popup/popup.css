@@ -1,0 +1,69 @@
+body {
+  background: #111;
+  color: #f5f5f5;
+  font: 13px Arial, sans-serif;
+  margin: 0;
+  width: 265px;
+}
+
+main {
+  padding: 16px;
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0 0 10px;
+}
+
+.toggle {
+  align-items: center;
+  background: #202020;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 10px;
+}
+
+.toggle input {
+  accent-color: #49d17d;
+}
+
+.status {
+  color: #49d17d;
+  margin: 0 0 16px;
+}
+
+dl {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+dl div {
+  align-items: center;
+  background: #202020;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+dt {
+  color: #bababa;
+}
+
+dd {
+  font-size: 17px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.last {
+  border-top: 1px solid #2f2f2f;
+  color: #bababa;
+  line-height: 1.4;
+  margin: 0;
+  padding-top: 12px;
+}

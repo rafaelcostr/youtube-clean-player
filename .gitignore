@@ -5,3 +5,4 @@ Thumbs.db
 .vscode/
 *.crx
 *.pem
+node_modules/

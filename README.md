@@ -15,7 +15,7 @@ Extensão experimental para Chrome/Chromium que reduz anúncios no YouTube — b
 ## Stack
 
 - Manifest V3
-- JavaScript (ES modules, sem bundler)
+- JavaScript (ES modules no código-fonte, build com esbuild)
 - `declarativeNetRequest`, `chrome.debugger`, `chrome.storage`
 
 ## Arquitetura
@@ -39,13 +39,17 @@ Documentação detalhada: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 ```bash
 git clone https://github.com/rafaelcostr/youtube-clean-player.git
 cd youtube-clean-player
+npm install
+npm run build
 ```
 
 1. Abra `chrome://extensions`
 2. Ative **Modo do desenvolvedor**
-3. **Carregar sem compactação** → selecione a pasta do projeto
-4. Recarregue a extensão após alterações no código
+3. **Carregar sem compactação** → selecione a pasta do projeto (a raiz, não `src/`)
+4. Recarregue a extensão após alterações (`npm run build` + botão Recarregar)
 5. Abra ou recarregue `youtube.com`
+
+> Se a pasta `dist/` já existir no clone, pode pular o build na primeira vez. Ao editar `src/`, rode `npm run build` antes de recarregar.
 
 ## Aviso do Chrome (debugger)
 
@@ -54,6 +58,13 @@ Em anúncios estáticos, o Chrome pode exibir:
 > *"YouTube Clean Player começou a depurar este navegador"*
 
 Isso ocorre porque a extensão usa `chrome.debugger` para simular um clique real no **Pular** (YouTube ignora cliques sintéticos de JavaScript). É esperado em uso pessoal.
+
+## Scripts
+
+| Comando | Ação |
+|---------|------|
+| `npm install` | Instala dependências de build |
+| `npm run build` | Gera `dist/` a partir de `src/` |
 
 ## Manutenção rápida
 

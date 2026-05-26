@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Clean Player",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Extensao pessoal para reduzir anuncios e promocoes no YouTube.",
   "permissions": [
     "storage",
@@ -13,7 +13,7 @@
     "https://youtube.com/*"
   ],
   "background": {
-    "service_worker": "src/background/index.js",
+    "service_worker": "dist/background.js",
     "type": "module"
   },
   "declarative_net_request": {
@@ -27,19 +27,12 @@
   },
   "action": {
     "default_title": "YouTube Clean Player",
-    "default_popup": "src/popup/popup.html"
+    "default_popup": "dist/popup/popup.html"
   },
   "web_accessible_resources": [
     {
       "resources": [
-        "src/page/index.js",
-        "src/page/controller.js",
-        "src/page/ad-handlers.js",
-        "src/page/skip-button.js",
-        "src/page/mute.js",
-        "src/page/dom.js",
-        "src/shared/constants.js",
-        "src/shared/selectors.js"
+        "dist/page.js"
       ],
       "matches": [
         "https://www.youtube.com/*",
@@ -57,9 +50,8 @@
         "src/styles/cosmetic.css"
       ],
       "js": [
-        "src/content/index.js"
+        "dist/content.js"
       ],
-      "type": "module",
       "run_at": "document_idle"
     }
   ]

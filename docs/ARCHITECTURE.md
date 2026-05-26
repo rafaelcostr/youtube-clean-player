@@ -1,6 +1,15 @@
 # Arquitetura — YouTube Clean Player
 
-Extensão Chrome MV3 organizada em módulos ES. Sem bundler: o Chrome carrega os módulos diretamente via `type: "module"`.
+Extensão Chrome MV3 organizada em módulos ES no código-fonte (`src/`). O Chrome carrega os arquivos compilados em `dist/` (gerados com esbuild).
+
+## Build
+
+```bash
+npm install
+npm run build
+```
+
+O `manifest.json` aponta para `dist/`, não para `src/` diretamente. Isso evita o erro `Cannot use import statement outside a module`.
 
 ## Fluxo geral
 
