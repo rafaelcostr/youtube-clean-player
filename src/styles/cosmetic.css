@@ -1,0 +1,13 @@
+#masthead-ad,
+.ytp-ad-overlay-container,
+.ytp-ad-message-container,
+.ytp-ad-player-overlay,
+ytd-ad-slot-renderer,
+ytd-banner-promo-renderer,
+ytd-display-ad-renderer,
+ytd-in-feed-ad-layout-renderer,
+ytd-promoted-sparkles-web-renderer,
+ytd-promoted-video-renderer,
+ytd-statement-banner-renderer {
+  display: none !important;
+}

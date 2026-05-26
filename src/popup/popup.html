@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <title>YouTube Clean Player</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <h1>Clean Player</h1>
+      <label class="toggle">
+        <input type="checkbox" id="enabled" checked>
+        <span>Bloqueio ativo</span>
+      </label>
+      <p class="status" id="statusText">Ativo no YouTube</p>
+      <dl>
+        <div>
+          <dt>Anuncios pulados</dt>
+          <dd id="skipped">0</dd>
+        </div>
+        <div>
+          <dt>Promocoes ocultadas</dt>
+          <dd id="hidden">0</dd>
+        </div>
+        <div>
+          <dt>Regras de rede</dt>
+          <dd id="blocked">—</dd>
+        </div>
+      </dl>
+      <p class="last" id="lastAction">Abra um video do YouTube para testar.</p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
