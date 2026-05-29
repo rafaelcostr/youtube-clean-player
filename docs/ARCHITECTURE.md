@@ -41,7 +41,7 @@ flowchart TB
 
 | Camada | Módulo | O que faz |
 |--------|--------|-----------|
-| Rede | `background/network-rules.js` | Bloqueia requests de ads antes de carregar |
+| Rede | `background/network-rules.js` | Bloqueia requisições de anúncios antes de carregar |
 | Cosmético | `content/cosmetic.js` + `styles/cosmetic.css` | Esconde elementos promocionais no DOM |
 | Vídeo | `page/ad-handlers.js` | Avança anúncios em vídeo curtos (≤ 120 s) |
 | Estático | `page/skip-button.js` + `background/trusted-click.js` | Clica em **Pular** com mouse real |
