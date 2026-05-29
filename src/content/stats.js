@@ -4,7 +4,7 @@ const defaultStatus = {
   pageActions: 0,
   skippedVideoAds: 0,
   hiddenPromotions: 0,
-  lastAction: "Extensao iniciada",
+  lastAction: "Extensão iniciada",
   updatedAt: Date.now()
 };
 

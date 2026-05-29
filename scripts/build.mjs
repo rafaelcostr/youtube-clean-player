@@ -40,4 +40,4 @@ await Promise.all([
   })
 ]);
 
-console.log("Build concluido: dist/");
+console.log("Build concluído: dist/");

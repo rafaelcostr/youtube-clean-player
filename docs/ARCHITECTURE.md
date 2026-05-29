@@ -15,13 +15,13 @@ O `manifest.json` aponta para `dist/`, não para `src/` diretamente. Isso evita 
 
 ```mermaid
 flowchart TB
-  subgraph ext [Extensao Chrome]
+  subgraph ext [Extensão Chrome]
     BG[background]
     CS[content script]
     POP[popup]
   end
 
-  subgraph page [Contexto da pagina YouTube]
+  subgraph page [Contexto da página YouTube]
     PG[page script]
   end
 

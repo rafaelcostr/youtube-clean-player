@@ -13,7 +13,7 @@ function hidePromotionalElements() {
 
       element.dataset.cleanPlayerHandled = "true";
       element.style.setProperty("display", "none", "important");
-      record("Promocao visual ocultada", "hiddenPromotions");
+      record("Promoção visual ocultada", "hiddenPromotions");
     });
   }
 }

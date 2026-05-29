@@ -26,7 +26,7 @@
     pageActions: 0,
     skippedVideoAds: 0,
     hiddenPromotions: 0,
-    lastAction: "Extensao iniciada",
+    lastAction: "Extens\xE3o iniciada",
     updatedAt: Date.now()
   };
   var state = { ...defaultStatus };
@@ -78,7 +78,7 @@
         }
         element.dataset.cleanPlayerHandled = "true";
         element.style.setProperty("display", "none", "important");
-        record("Promocao visual ocultada", "hiddenPromotions");
+        record("Promo\xE7\xE3o visual ocultada", "hiddenPromotions");
       });
     }
   }
@@ -146,10 +146,10 @@
         return;
       }
       if (event.data.method === SKIP_METHODS.click) {
-        record("Botao de pular anuncio acionado", "skippedVideoAds");
+        record("Bot\xE3o de pular an\xFAncio acionado", "skippedVideoAds");
         return;
       }
-      record("Reproducao de anuncio avancada", "skippedVideoAds");
+      record("Reprodu\xE7\xE3o de an\xFAncio avan\xE7ada", "skippedVideoAds");
     });
   }
   function watchEnabledChanges(onChange) {

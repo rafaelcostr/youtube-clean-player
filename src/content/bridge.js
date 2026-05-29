@@ -35,11 +35,11 @@ export function initPageBridge(enabledRef) {
     }
 
     if (event.data.method === SKIP_METHODS.click) {
-      record("Botao de pular anuncio acionado", "skippedVideoAds");
+      record("Botão de pular anúncio acionado", "skippedVideoAds");
       return;
     }
 
-    record("Reproducao de anuncio avancada", "skippedVideoAds");
+    record("Reprodução de anúncio avançada", "skippedVideoAds");
   });
 }
 
