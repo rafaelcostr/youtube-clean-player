@@ -1,8 +1,8 @@
 # YouTube Clean Player
 
-Extensão experimental para Chrome/Chromium que reduz anúncios no YouTube — bloqueio de rede, filtros visuais e skip automático no player. Projeto de portfólio com arquitetura modular para manutenção.
+Extensão experimental para Chrome/Chromium que reduz anúncios no YouTube — bloqueio de rede, filtros visuais e pulo automático no player. Projeto de portfólio com arquitetura modular para manutenção.
 
-**Uso pessoal.** Não afiliada ao Google/YouTube. Instalação manual (sem Chrome Web Store).
+**Uso pessoal.** Não afiliada ao Google ou ao YouTube. Instalação manual (sem Chrome Web Store).
 
 ## Funcionalidades
 

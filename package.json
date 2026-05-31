@@ -2,7 +2,7 @@
   "name": "youtube-clean-player",
   "private": true,
   "version": "1.0.0",
-  "description": "Extensão pessoal para reduzir anúncios no YouTube.",
+  "description": "Extensão pessoal para reduzir anúncios e promoções no YouTube.",
   "scripts": {
     "build": "node scripts/build.mjs"
   },
