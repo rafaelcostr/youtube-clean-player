@@ -12,6 +12,15 @@ export const AD_UI_SELECTORS = [
   "ytd-statement-banner-renderer"
 ];
 
+/** Modal "Bloqueadores de anúncios são proibidos no YouTube". */
+export const ENFORCEMENT_SELECTORS = [
+  "ytd-enforcement-message-view-model",
+  "tp-yt-paper-dialog:has(.ytd-enforcement-message-view-model)",
+  ".ytd-popup-container:has(.ytd-enforcement-message-view-model)"
+];
+
+export const MODAL_BACKDROP_SELECTORS = ["tp-yt-iron-overlay-backdrop"];
+
 export const STATIC_AD_MARKERS = [
   ".ytp-ad-image-overlay",
   ".ytp-ad-overlay-image",

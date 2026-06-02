@@ -8,6 +8,7 @@ Extensão experimental para Chrome/Chromium que reduz anúncios no YouTube — b
 
 - **Bloqueio de rede** — regras `declarativeNetRequest` para domínios e endpoints de anúncio
 - **Filtro cosmético** — esconde banners, cards e overlays na página
+- **Anti-bloqueador** — oculta o aviso “Bloqueadores de anúncios são proibidos” e tenta retomar o vídeo
 - **Anúncio em vídeo** — avança o player e muta o áudio
 - **Anúncio estático (imagem)** — clique real no botão **Pular** via `chrome.debugger`
 - **Popup** — liga/desliga, contadores e última ação
@@ -76,6 +77,7 @@ Isso ocorre porque a extensão usa `chrome.debugger` para simular um clique real
 | Lógica de anúncio em vídeo | `src/page/ad-handlers.js` |
 | Botão Pular / clique | `src/page/skip-button.js` + `src/background/trusted-click.js` |
 | Esconder banners na página | `src/content/cosmetic.js` + `src/styles/cosmetic.css` |
+| Aviso de bloqueador do YouTube | `src/content/cosmetic.js` + `src/styles/cosmetic.css` (`ENFORCEMENT_SELECTORS`) |
 
 ## Limitações
 

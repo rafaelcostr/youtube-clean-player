@@ -11,3 +11,17 @@ ytd-promoted-video-renderer,
 ytd-statement-banner-renderer {
   display: none !important;
 }
+
+/* Aviso "Bloqueadores de anúncios são proibidos no YouTube" */
+ytd-enforcement-message-view-model,
+tp-yt-paper-dialog:has(.ytd-enforcement-message-view-model),
+.ytd-popup-container:has(.ytd-enforcement-message-view-model) {
+  display: none !important;
+}
+
+html:has(.ytd-enforcement-message-view-model) tp-yt-iron-overlay-backdrop,
+html:has(tp-yt-paper-dialog .ytd-enforcement-message-view-model) tp-yt-iron-overlay-backdrop {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
