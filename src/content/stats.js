@@ -26,7 +26,9 @@ function saveStatus() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     state.updatedAt = Date.now();
-    chrome.storage.local.set({ [STORAGE_KEYS.status]: state });
+    chrome.storage.local.set({ [STORAGE_KEYS.status]: state }, () => {
+      void chrome.runtime.lastError;
+    });
   }, 100);
 }
 

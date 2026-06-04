@@ -1,6 +1,7 @@
 import { MAX_VIDEO_AD_DURATION, MESSAGE_SOURCE, MESSAGE_TYPES, SKIP_METHODS } from "../shared/constants.js";
-import { STATIC_AD_MARKERS } from "../shared/selectors.js";
-import { getAdKey, getPlayer, getVideo, isAdPlaying } from "./dom.js";
+import { PLAYER_SELECTORS, STATIC_AD_MARKERS } from "../shared/selectors.js";
+import { getAdKey, getPlayer, getVideo, isAdPlaying, isVisible } from "./dom.js";
+import { isInNavigationGrace } from "./navigation-grace.js";
 import { isEnabled, muteOnce } from "./mute.js";
 import { findSkipButton, requestTrustedClick } from "./skip-button.js";
 
@@ -20,11 +21,16 @@ function notify(method, key) {
 }
 
 export function isVideoAd(player) {
-  if (!player) {
+  if (!player || isInNavigationGrace()) {
     return false;
   }
 
   if (player.querySelector(STATIC_AD_MARKERS.join(", "))) {
+    return false;
+  }
+
+  const adLabel = document.querySelector(PLAYER_SELECTORS.adLabel);
+  if (!adLabel || !isVisible(adLabel)) {
     return false;
   }
 
@@ -60,7 +66,7 @@ function seekVideoAd() {
 }
 
 export function handleVideoAd() {
-  if (!isEnabled() || !isAdPlaying()) {
+  if (!isEnabled() || isInNavigationGrace() || !isAdPlaying()) {
     return;
   }
 
@@ -81,7 +87,7 @@ export function handleVideoAd() {
 }
 
 export function handleStaticAd() {
-  if (!isEnabled() || !isAdPlaying()) {
+  if (!isEnabled() || isInNavigationGrace() || !isAdPlaying()) {
     return;
   }
 

@@ -1,11 +1,28 @@
-import { PLAYER_SELECTORS } from "../shared/selectors.js";
+import { PLAYER_SELECTORS, STATIC_AD_MARKERS } from "../shared/selectors.js";
 
 export function getPlayer() {
   return document.querySelector(PLAYER_SELECTORS.active);
 }
 
 export function isAdPlaying() {
-  return !!document.querySelector(PLAYER_SELECTORS.adPlaying);
+  const player = document.querySelector(PLAYER_SELECTORS.adPlaying);
+  if (!player) {
+    return false;
+  }
+
+  const adLabel = document.querySelector(PLAYER_SELECTORS.adLabel);
+  if (adLabel && isVisible(adLabel)) {
+    return true;
+  }
+
+  for (const selector of STATIC_AD_MARKERS) {
+    const marker = player.querySelector(selector);
+    if (marker && isVisible(marker)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function getVideo() {

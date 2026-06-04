@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Clean Player",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Extensão pessoal para reduzir anúncios e promoções no YouTube.",
   "permissions": [
     "storage",

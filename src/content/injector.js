@@ -12,5 +12,9 @@ export function injectPageScript() {
   const script = document.createElement("script");
   script.src = chrome.runtime.getURL(PAGE_ENTRY);
   script.onload = () => script.remove();
+  script.onerror = () => {
+    document.documentElement.dataset[DATASET_KEYS.skipLoaded] = "false";
+    script.remove();
+  };
   (document.head || document.documentElement).appendChild(script);
 }

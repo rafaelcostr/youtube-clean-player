@@ -77,7 +77,7 @@ Isso ocorre porque a extensão usa `chrome.debugger` para simular um clique real
 | Lógica de anúncio em vídeo | `src/page/ad-handlers.js` |
 | Botão Pular / clique | `src/page/skip-button.js` + `src/background/trusted-click.js` |
 | Esconder banners na página | `src/content/cosmetic.js` + `src/styles/cosmetic.css` |
-| Aviso de bloqueador do YouTube | `src/content/cosmetic.js` + `src/styles/cosmetic.css` (`ENFORCEMENT_SELECTORS`) |
+| Aviso de bloqueador do YouTube | `src/content/cosmetic.js` + `src/styles/cosmetic.css` |
 
 ## Limitações
 

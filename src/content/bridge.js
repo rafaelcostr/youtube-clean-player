@@ -23,10 +23,19 @@ export function initPageBridge(enabledRef) {
         return;
       }
 
-      chrome.runtime.sendMessage({
-        action: RUNTIME_ACTIONS.trustedClick,
-        rect: event.data.rect
-      });
+      if (!chrome.runtime?.id) {
+        return;
+      }
+
+      chrome.runtime.sendMessage(
+        {
+          action: RUNTIME_ACTIONS.trustedClick,
+          rect: event.data.rect
+        },
+        () => {
+          void chrome.runtime.lastError;
+        }
+      );
       return;
     }
 

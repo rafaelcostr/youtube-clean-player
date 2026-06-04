@@ -1,6 +1,7 @@
 import { STATIC_CHECK_MS, VIDEO_CHECK_MS } from "../shared/constants.js";
 import { isAdPlaying } from "./dom.js";
 import { handleStaticAd, handleVideoAd, resetAdHandlers } from "./ad-handlers.js";
+import { markNavigation } from "./navigation-grace.js";
 import { restoreVolume } from "./mute.js";
 import { resetTrustedClickCooldown } from "./skip-button.js";
 
@@ -26,8 +27,7 @@ export function startAdController() {
   }, STATIC_CHECK_MS);
 
   document.addEventListener("yt-navigate-finish", () => {
+    markNavigation();
     resetWhenAdEnds();
-    handleVideoAd();
-    handleStaticAd();
   });
 }

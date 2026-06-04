@@ -8,6 +8,7 @@
   var CLICK_COOLDOWN_MS = 350;
   var VIDEO_CHECK_MS = 500;
   var STATIC_CHECK_MS = 400;
+  var NAVIGATION_GRACE_MS = 2500;
   var MAX_VIDEO_AD_DURATION = 120;
   var COUNTDOWN_PATTERN = /pular em|skip in|ignorar em|skip ad in/i;
   var MESSAGE_TYPES = {
@@ -47,7 +48,21 @@
     return document.querySelector(PLAYER_SELECTORS.active);
   }
   function isAdPlaying() {
-    return !!document.querySelector(PLAYER_SELECTORS.adPlaying);
+    const player = document.querySelector(PLAYER_SELECTORS.adPlaying);
+    if (!player) {
+      return false;
+    }
+    const adLabel = document.querySelector(PLAYER_SELECTORS.adLabel);
+    if (adLabel && isVisible(adLabel)) {
+      return true;
+    }
+    for (const selector of STATIC_AD_MARKERS) {
+      const marker = player.querySelector(selector);
+      if (marker && isVisible(marker)) {
+        return true;
+      }
+    }
+    return false;
   }
   function getVideo() {
     return document.querySelector(PLAYER_SELECTORS.video);
@@ -64,6 +79,15 @@
     const style = window.getComputedStyle(element);
     const rect = element.getBoundingClientRect();
     return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+  }
+
+  // src/page/navigation-grace.js
+  var navigationGraceUntil = 0;
+  function markNavigation() {
+    navigationGraceUntil = Date.now() + NAVIGATION_GRACE_MS;
+  }
+  function isInNavigationGrace() {
+    return Date.now() < navigationGraceUntil;
   }
 
   // src/page/mute.js
@@ -166,10 +190,14 @@
     );
   }
   function isVideoAd(player) {
-    if (!player) {
+    if (!player || isInNavigationGrace()) {
       return false;
     }
     if (player.querySelector(STATIC_AD_MARKERS.join(", "))) {
+      return false;
+    }
+    const adLabel = document.querySelector(PLAYER_SELECTORS.adLabel);
+    if (!adLabel || !isVisible(adLabel)) {
       return false;
     }
     const video = getVideo();
@@ -193,7 +221,7 @@
     video.currentTime = Math.max(video.duration - 0.1, 0);
   }
   function handleVideoAd() {
-    if (!isEnabled() || !isAdPlaying()) {
+    if (!isEnabled() || isInNavigationGrace() || !isAdPlaying()) {
       return;
     }
     const player = getPlayer();
@@ -209,7 +237,7 @@
     }
   }
   function handleStaticAd() {
-    if (!isEnabled() || !isAdPlaying()) {
+    if (!isEnabled() || isInNavigationGrace() || !isAdPlaying()) {
       return;
     }
     const player = getPlayer();
@@ -252,9 +280,8 @@
       handleStaticAd();
     }, STATIC_CHECK_MS);
     document.addEventListener("yt-navigate-finish", () => {
+      markNavigation();
       resetWhenAdEnds();
-      handleVideoAd();
-      handleStaticAd();
     });
   }
 
