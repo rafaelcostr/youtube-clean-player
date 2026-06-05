@@ -4,7 +4,7 @@ var STORAGE_KEYS = {
   status: "cleanPlayerStatus"
 };
 var RULESET_ID = "ads";
-var CLICK_COOLDOWN_MS = 350;
+var CLICK_COOLDOWN_MS = 280;
 var RUNTIME_ACTIONS = {
   trustedClick: "trustedClick"
 };

@@ -1,11 +1,23 @@
-import { PLAYER_SELECTORS, STATIC_AD_MARKERS } from "../shared/selectors.js";
+import {
+  PLAYER_SELECTORS,
+  SKIP_BUTTON_SELECTORS,
+  STATIC_AD_MARKERS
+} from "../shared/selectors.js";
 
 export function getPlayer() {
   return document.querySelector(PLAYER_SELECTORS.active);
 }
 
 export function isAdPlaying() {
-  const player = document.querySelector(PLAYER_SELECTORS.adPlaying);
+  return !!document.querySelector(PLAYER_SELECTORS.adPlaying);
+}
+
+/** Sinais claros de anúncio (não confundir com troca de vídeo no Mix). */
+export function hasActiveAdSignal() {
+  const player =
+    document.querySelector(PLAYER_SELECTORS.adPlaying) ||
+    document.querySelector(PLAYER_SELECTORS.root);
+
   if (!player) {
     return false;
   }
@@ -18,6 +30,13 @@ export function isAdPlaying() {
   for (const selector of STATIC_AD_MARKERS) {
     const marker = player.querySelector(selector);
     if (marker && isVisible(marker)) {
+      return true;
+    }
+  }
+
+  for (const selector of SKIP_BUTTON_SELECTORS) {
+    const button = player.querySelector(selector);
+    if (button && isVisible(button)) {
       return true;
     }
   }

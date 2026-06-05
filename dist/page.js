@@ -5,10 +5,11 @@
     enabled: "cleanPlayerEnabled",
     skipLoaded: "cleanPlayerSkipLoaded"
   };
-  var CLICK_COOLDOWN_MS = 350;
-  var VIDEO_CHECK_MS = 500;
-  var STATIC_CHECK_MS = 400;
-  var NAVIGATION_GRACE_MS = 2500;
+  var CLICK_COOLDOWN_MS = 280;
+  var VIDEO_CHECK_MS = 200;
+  var STATIC_CHECK_MS = 200;
+  var AD_MUTE_CHECK_MS = 100;
+  var NAVIGATION_GRACE_MS = 1200;
   var MAX_VIDEO_AD_DURATION = 120;
   var COUNTDOWN_PATTERN = /pular em|skip in|ignorar em|skip ad in/i;
   var MESSAGE_TYPES = {
@@ -48,7 +49,10 @@
     return document.querySelector(PLAYER_SELECTORS.active);
   }
   function isAdPlaying() {
-    const player = document.querySelector(PLAYER_SELECTORS.adPlaying);
+    return !!document.querySelector(PLAYER_SELECTORS.adPlaying);
+  }
+  function hasActiveAdSignal() {
+    const player = document.querySelector(PLAYER_SELECTORS.adPlaying) || document.querySelector(PLAYER_SELECTORS.root);
     if (!player) {
       return false;
     }
@@ -59,6 +63,12 @@
     for (const selector of STATIC_AD_MARKERS) {
       const marker = player.querySelector(selector);
       if (marker && isVisible(marker)) {
+        return true;
+      }
+    }
+    for (const selector of SKIP_BUTTON_SELECTORS) {
+      const button = player.querySelector(selector);
+      if (button && isVisible(button)) {
         return true;
       }
     }
@@ -89,6 +99,12 @@
   function isInNavigationGrace() {
     return Date.now() < navigationGraceUntil;
   }
+  function shouldDeferAdHandling() {
+    if (!isInNavigationGrace()) {
+      return false;
+    }
+    return !hasActiveAdSignal();
+  }
 
   // src/page/mute.js
   var savedVolume = null;
@@ -106,6 +122,13 @@
       mutedByUs = true;
     }
     video.muted = true;
+    video.volume = 0;
+  }
+  function muteDuringAd() {
+    if (!isEnabled() || !isAdPlaying()) {
+      return;
+    }
+    muteOnce();
   }
   function restoreVolume() {
     const video = getVideo();
@@ -114,8 +137,8 @@
       savedVolume = null;
       return;
     }
-    video.muted = false;
     video.volume = savedVolume ?? 1;
+    video.muted = false;
     mutedByUs = false;
     savedVolume = null;
   }
@@ -190,21 +213,20 @@
     );
   }
   function isVideoAd(player) {
-    if (!player || isInNavigationGrace()) {
+    if (!player) {
       return false;
     }
     if (player.querySelector(STATIC_AD_MARKERS.join(", "))) {
-      return false;
-    }
-    const adLabel = document.querySelector(PLAYER_SELECTORS.adLabel);
-    if (!adLabel || !isVisible(adLabel)) {
       return false;
     }
     const video = getVideo();
     if (!video || !Number.isFinite(video.duration) || video.duration <= 0) {
       return false;
     }
-    return video.duration <= MAX_VIDEO_AD_DURATION;
+    if (video.duration > MAX_VIDEO_AD_DURATION) {
+      return false;
+    }
+    return hasActiveAdSignal() || isAdPlaying();
   }
   function isStaticAd(player) {
     if (!player || !isAdPlaying()) {
@@ -218,10 +240,10 @@
       return;
     }
     video.muted = true;
-    video.currentTime = Math.max(video.duration - 0.1, 0);
+    video.currentTime = Math.max(video.duration - 0.05, 0);
   }
   function handleVideoAd() {
-    if (!isEnabled() || isInNavigationGrace() || !isAdPlaying()) {
+    if (!isEnabled() || shouldDeferAdHandling() || !isAdPlaying()) {
       return;
     }
     const player = getPlayer();
@@ -237,7 +259,7 @@
     }
   }
   function handleStaticAd() {
-    if (!isEnabled() || isInNavigationGrace() || !isAdPlaying()) {
+    if (!isEnabled() || shouldDeferAdHandling() || !isAdPlaying()) {
       return;
     }
     const player = getPlayer();
@@ -272,10 +294,15 @@
   }
   function startAdController() {
     window.setInterval(() => {
+      muteDuringAd();
+    }, AD_MUTE_CHECK_MS);
+    window.setInterval(() => {
+      muteDuringAd();
       resetWhenAdEnds();
       handleVideoAd();
     }, VIDEO_CHECK_MS);
     window.setInterval(() => {
+      muteDuringAd();
       resetWhenAdEnds();
       handleStaticAd();
     }, STATIC_CHECK_MS);

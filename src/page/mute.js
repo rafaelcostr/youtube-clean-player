@@ -1,5 +1,5 @@
 import { DATASET_KEYS } from "../shared/constants.js";
-import { getVideo } from "./dom.js";
+import { getVideo, isAdPlaying } from "./dom.js";
 
 let savedVolume = null;
 let mutedByUs = false;
@@ -20,6 +20,15 @@ export function muteOnce() {
   }
 
   video.muted = true;
+  video.volume = 0;
+}
+
+export function muteDuringAd() {
+  if (!isEnabled() || !isAdPlaying()) {
+    return;
+  }
+
+  muteOnce();
 }
 
 export function restoreVolume() {
@@ -30,8 +39,8 @@ export function restoreVolume() {
     return;
   }
 
-  video.muted = false;
   video.volume = savedVolume ?? 1;
+  video.muted = false;
   mutedByUs = false;
   savedVolume = null;
 }

@@ -1,7 +1,7 @@
 import { MAX_VIDEO_AD_DURATION, MESSAGE_SOURCE, MESSAGE_TYPES, SKIP_METHODS } from "../shared/constants.js";
-import { PLAYER_SELECTORS, STATIC_AD_MARKERS } from "../shared/selectors.js";
-import { getAdKey, getPlayer, getVideo, isAdPlaying, isVisible } from "./dom.js";
-import { isInNavigationGrace } from "./navigation-grace.js";
+import { STATIC_AD_MARKERS } from "../shared/selectors.js";
+import { getAdKey, getPlayer, getVideo, hasActiveAdSignal, isAdPlaying } from "./dom.js";
+import { shouldDeferAdHandling } from "./navigation-grace.js";
 import { isEnabled, muteOnce } from "./mute.js";
 import { findSkipButton, requestTrustedClick } from "./skip-button.js";
 
@@ -21,16 +21,11 @@ function notify(method, key) {
 }
 
 export function isVideoAd(player) {
-  if (!player || isInNavigationGrace()) {
+  if (!player) {
     return false;
   }
 
   if (player.querySelector(STATIC_AD_MARKERS.join(", "))) {
-    return false;
-  }
-
-  const adLabel = document.querySelector(PLAYER_SELECTORS.adLabel);
-  if (!adLabel || !isVisible(adLabel)) {
     return false;
   }
 
@@ -39,7 +34,11 @@ export function isVideoAd(player) {
     return false;
   }
 
-  return video.duration <= MAX_VIDEO_AD_DURATION;
+  if (video.duration > MAX_VIDEO_AD_DURATION) {
+    return false;
+  }
+
+  return hasActiveAdSignal() || isAdPlaying();
 }
 
 export function isStaticAd(player) {
@@ -62,11 +61,11 @@ function seekVideoAd() {
   }
 
   video.muted = true;
-  video.currentTime = Math.max(video.duration - 0.1, 0);
+  video.currentTime = Math.max(video.duration - 0.05, 0);
 }
 
 export function handleVideoAd() {
-  if (!isEnabled() || isInNavigationGrace() || !isAdPlaying()) {
+  if (!isEnabled() || shouldDeferAdHandling() || !isAdPlaying()) {
     return;
   }
 
@@ -87,7 +86,7 @@ export function handleVideoAd() {
 }
 
 export function handleStaticAd() {
-  if (!isEnabled() || isInNavigationGrace() || !isAdPlaying()) {
+  if (!isEnabled() || shouldDeferAdHandling() || !isAdPlaying()) {
     return;
   }
 

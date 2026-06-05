@@ -1,5 +1,7 @@
 import {
   AD_UI_SELECTORS,
+  IDLE_CONFIRM_SELECTORS,
+  IDLE_PROMPT_PATTERNS,
   MODAL_BACKDROP_SELECTORS,
   PLAYER_SELECTORS
 } from "../shared/selectors.js";
@@ -9,6 +11,9 @@ let observer;
 let intervalId;
 let inspectScheduled = false;
 let isInspecting = false;
+let lastIdleConfirmAt = 0;
+
+const IDLE_CONFIRM_COOLDOWN_MS = 2000;
 
 function isElementVisible(element) {
   if (!element || !element.isConnected) {
@@ -104,6 +109,70 @@ function isPaperDialog(element) {
   return element?.tagName?.toLowerCase() === "tp-yt-paper-dialog";
 }
 
+function isIdlePromptDialog(element) {
+  const text = element?.textContent || "";
+  return IDLE_PROMPT_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function findIdlePromptDialog() {
+  const renderer = document.querySelector("yt-confirm-dialog-renderer");
+  if (renderer && isElementVisible(renderer) && isIdlePromptDialog(renderer)) {
+    return renderer;
+  }
+
+  for (const dialog of document.querySelectorAll("tp-yt-paper-dialog, ytd-popup-container")) {
+    if (isElementVisible(dialog) && isIdlePromptDialog(dialog)) {
+      return dialog;
+    }
+  }
+
+  return null;
+}
+
+function findIdleConfirmButton(root) {
+  for (const selector of IDLE_CONFIRM_SELECTORS) {
+    const element = root.querySelector(selector);
+    if (element && isElementVisible(element)) {
+      return element;
+    }
+  }
+
+  for (const element of root.querySelectorAll("button, paper-button, yt-button-renderer a")) {
+    const label = `${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`.trim();
+    if (!/^(sim|yes|ok)$/i.test(label)) {
+      continue;
+    }
+
+    if (isElementVisible(element)) {
+      return element;
+    }
+  }
+
+  return null;
+}
+
+function dismissIdlePrompt() {
+  const dialog = findIdlePromptDialog();
+  if (!dialog) {
+    return;
+  }
+
+  const now = Date.now();
+  if (now - lastIdleConfirmAt < IDLE_CONFIRM_COOLDOWN_MS) {
+    return;
+  }
+
+  const confirmButton = findIdleConfirmButton(dialog);
+  if (!confirmButton) {
+    return;
+  }
+
+  lastIdleConfirmAt = now;
+  confirmButton.click();
+  unlockPageScroll();
+  resumeVideoAfterEnforcement();
+}
+
 function dismissEnforcementModal() {
   const enforcementRoot = findVisibleEnforcementRoot();
 
@@ -139,6 +208,7 @@ function runInspectPage() {
 
   try {
     dismissEnforcementModal();
+    dismissIdlePrompt();
     hidePromotionalElements();
   } catch {
     // Evita que falhas no DOM apareçam como erro da extensão no Chrome.

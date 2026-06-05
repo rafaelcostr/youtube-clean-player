@@ -1,8 +1,8 @@
-import { STATIC_CHECK_MS, VIDEO_CHECK_MS } from "../shared/constants.js";
+import { AD_MUTE_CHECK_MS, STATIC_CHECK_MS, VIDEO_CHECK_MS } from "../shared/constants.js";
 import { isAdPlaying } from "./dom.js";
 import { handleStaticAd, handleVideoAd, resetAdHandlers } from "./ad-handlers.js";
 import { markNavigation } from "./navigation-grace.js";
-import { restoreVolume } from "./mute.js";
+import { muteDuringAd, restoreVolume } from "./mute.js";
 import { resetTrustedClickCooldown } from "./skip-button.js";
 
 function resetWhenAdEnds() {
@@ -17,11 +17,17 @@ function resetWhenAdEnds() {
 
 export function startAdController() {
   window.setInterval(() => {
+    muteDuringAd();
+  }, AD_MUTE_CHECK_MS);
+
+  window.setInterval(() => {
+    muteDuringAd();
     resetWhenAdEnds();
     handleVideoAd();
   }, VIDEO_CHECK_MS);
 
   window.setInterval(() => {
+    muteDuringAd();
     resetWhenAdEnds();
     handleStaticAd();
   }, STATIC_CHECK_MS);

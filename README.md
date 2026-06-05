@@ -9,6 +9,7 @@ Extensão experimental para Chrome/Chromium que reduz anúncios no YouTube — b
 - **Bloqueio de rede** — regras `declarativeNetRequest` para domínios e endpoints de anúncio
 - **Filtro cosmético** — esconde banners, cards e overlays na página
 - **Anti-bloqueador** — oculta o aviso “Bloqueadores de anúncios são proibidos” e tenta retomar o vídeo
+- **Vídeo pausado** — clica em **Sim** no aviso “Quer continuar assistindo?”
 - **Anúncio em vídeo** — avança o player e muta o áudio
 - **Anúncio estático (imagem)** — clique real no botão **Pular** via `chrome.debugger`
 - **Popup** — liga/desliga, contadores e última ação

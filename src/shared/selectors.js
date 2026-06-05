@@ -14,6 +14,20 @@ export const AD_UI_SELECTORS = [
 
 export const MODAL_BACKDROP_SELECTORS = ["tp-yt-iron-overlay-backdrop"];
 
+/** "Vídeo pausado. Quer continuar assistindo?" */
+export const IDLE_PROMPT_PATTERNS = [
+  /v[ií]deo pausado/i,
+  /quer continuar assistindo/i,
+  /continue watching/i,
+  /still watching/i
+];
+
+export const IDLE_CONFIRM_SELECTORS = [
+  "yt-confirm-dialog-renderer #confirm-button button",
+  "yt-confirm-dialog-renderer #confirm-button #button",
+  "yt-confirm-dialog-renderer #confirm-button"
+];
+
 export const STATIC_AD_MARKERS = [
   ".ytp-ad-image-overlay",
   ".ytp-ad-overlay-image",

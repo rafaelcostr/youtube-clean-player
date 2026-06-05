@@ -41,7 +41,9 @@
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       state.updatedAt = Date.now();
-      chrome.storage.local.set({ [STORAGE_KEYS.status]: state });
+      chrome.storage.local.set({ [STORAGE_KEYS.status]: state }, () => {
+        void chrome.runtime.lastError;
+      });
     }, 100);
   }
   async function loadEnabledState() {
@@ -67,6 +69,17 @@
     "ytd-statement-banner-renderer"
   ];
   var MODAL_BACKDROP_SELECTORS = ["tp-yt-iron-overlay-backdrop"];
+  var IDLE_PROMPT_PATTERNS = [
+    /v[ií]deo pausado/i,
+    /quer continuar assistindo/i,
+    /continue watching/i,
+    /still watching/i
+  ];
+  var IDLE_CONFIRM_SELECTORS = [
+    "yt-confirm-dialog-renderer #confirm-button button",
+    "yt-confirm-dialog-renderer #confirm-button #button",
+    "yt-confirm-dialog-renderer #confirm-button"
+  ];
   var PLAYER_SELECTORS = {
     active: "#movie_player.html5-video-player, .html5-video-player.ad-showing, .html5-video-player.ad-interrupting",
     adPlaying: ".html5-video-player.ad-showing, .html5-video-player.ad-interrupting",
@@ -80,6 +93,8 @@
   var intervalId;
   var inspectScheduled = false;
   var isInspecting = false;
+  var lastIdleConfirmAt = 0;
+  var IDLE_CONFIRM_COOLDOWN_MS = 2e3;
   function isElementVisible(element) {
     if (!element || !element.isConnected) {
       return false;
@@ -154,6 +169,58 @@
   function isPaperDialog(element) {
     return element?.tagName?.toLowerCase() === "tp-yt-paper-dialog";
   }
+  function isIdlePromptDialog(element) {
+    const text = element?.textContent || "";
+    return IDLE_PROMPT_PATTERNS.some((pattern) => pattern.test(text));
+  }
+  function findIdlePromptDialog() {
+    const renderer = document.querySelector("yt-confirm-dialog-renderer");
+    if (renderer && isElementVisible(renderer) && isIdlePromptDialog(renderer)) {
+      return renderer;
+    }
+    for (const dialog of document.querySelectorAll("tp-yt-paper-dialog, ytd-popup-container")) {
+      if (isElementVisible(dialog) && isIdlePromptDialog(dialog)) {
+        return dialog;
+      }
+    }
+    return null;
+  }
+  function findIdleConfirmButton(root) {
+    for (const selector of IDLE_CONFIRM_SELECTORS) {
+      const element = root.querySelector(selector);
+      if (element && isElementVisible(element)) {
+        return element;
+      }
+    }
+    for (const element of root.querySelectorAll("button, paper-button, yt-button-renderer a")) {
+      const label = `${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`.trim();
+      if (!/^(sim|yes|ok)$/i.test(label)) {
+        continue;
+      }
+      if (isElementVisible(element)) {
+        return element;
+      }
+    }
+    return null;
+  }
+  function dismissIdlePrompt() {
+    const dialog = findIdlePromptDialog();
+    if (!dialog) {
+      return;
+    }
+    const now = Date.now();
+    if (now - lastIdleConfirmAt < IDLE_CONFIRM_COOLDOWN_MS) {
+      return;
+    }
+    const confirmButton = findIdleConfirmButton(dialog);
+    if (!confirmButton) {
+      return;
+    }
+    lastIdleConfirmAt = now;
+    confirmButton.click();
+    unlockPageScroll();
+    resumeVideoAfterEnforcement();
+  }
   function dismissEnforcementModal() {
     const enforcementRoot = findVisibleEnforcementRoot();
     if (!enforcementRoot) {
@@ -183,6 +250,7 @@
     isInspecting = true;
     try {
       dismissEnforcementModal();
+      dismissIdlePrompt();
       hidePromotionalElements();
     } catch {
     } finally {
@@ -234,6 +302,10 @@
     const script = document.createElement("script");
     script.src = chrome.runtime.getURL(PAGE_ENTRY);
     script.onload = () => script.remove();
+    script.onerror = () => {
+      document.documentElement.dataset[DATASET_KEYS.skipLoaded] = "false";
+      script.remove();
+    };
     (document.head || document.documentElement).appendChild(script);
   }
 
@@ -250,10 +322,18 @@
         if (!enabledRef2.current) {
           return;
         }
-        chrome.runtime.sendMessage({
-          action: RUNTIME_ACTIONS.trustedClick,
-          rect: event.data.rect
-        });
+        if (!chrome.runtime?.id) {
+          return;
+        }
+        chrome.runtime.sendMessage(
+          {
+            action: RUNTIME_ACTIONS.trustedClick,
+            rect: event.data.rect
+          },
+          () => {
+            void chrome.runtime.lastError;
+          }
+        );
         return;
       }
       if (event.data.type !== MESSAGE_TYPES.skip) {
