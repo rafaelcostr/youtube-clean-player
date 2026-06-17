@@ -6,10 +6,23 @@ import {
   SKIP_METHODS,
   STORAGE_KEYS
 } from "../shared/constants.js";
+import { isValidClickRect } from "../shared/validation.js";
 import { record } from "./stats.js";
+
+let bridgeToken = "";
+
+export function initBridgeToken() {
+  bridgeToken =
+    crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  document.documentElement.dataset[DATASET_KEYS.token] = bridgeToken;
+}
 
 export function syncEnabledFlag(enabled) {
   document.documentElement.dataset[DATASET_KEYS.enabled] = enabled ? "true" : "false";
+}
+
+function isAuthenticatedMessage(data) {
+  return typeof data?.token === "string" && data.token.length > 0 && data.token === bridgeToken;
 }
 
 export function initPageBridge(enabledRef) {
@@ -18,8 +31,16 @@ export function initPageBridge(enabledRef) {
       return;
     }
 
+    if (!isAuthenticatedMessage(event.data)) {
+      return;
+    }
+
     if (event.data.type === MESSAGE_TYPES.trustedClick) {
       if (!enabledRef.current) {
+        return;
+      }
+
+      if (!isValidClickRect(event.data.rect, window)) {
         return;
       }
 
@@ -44,11 +65,11 @@ export function initPageBridge(enabledRef) {
     }
 
     if (event.data.method === SKIP_METHODS.click) {
-      record("Botão de pular anúncio acionado", "skippedVideoAds");
+      record("Botão Pular acionado", "skippedVideoAds");
       return;
     }
 
-    record("Reprodução de anúncio avançada", "skippedVideoAds");
+    record("Anúncio em vídeo pulado", "skippedVideoAds");
   });
 }
 

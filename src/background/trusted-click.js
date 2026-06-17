@@ -1,4 +1,5 @@
 import { CLICK_COOLDOWN_MS, RUNTIME_ACTIONS, STORAGE_KEYS } from "../shared/constants.js";
+import { isValidClickRect, isYouTubeTabUrl } from "../shared/validation.js";
 
 const attachedTabs = new Set();
 const lastClickAtByTab = new Map();
@@ -14,6 +15,11 @@ function debuggerCall(method, ...args) {
       resolve(result);
     });
   });
+}
+
+function clearTabState(tabId) {
+  attachedTabs.delete(tabId);
+  lastClickAtByTab.delete(tabId);
 }
 
 async function trustedClick(tabId, rect) {
@@ -60,7 +66,7 @@ async function trustedClick(tabId, rect) {
 
     return { ok: true };
   } catch (error) {
-    attachedTabs.delete(tabId);
+    clearTabState(tabId);
 
     try {
       await debuggerCall(chrome.debugger.detach, target);
@@ -75,8 +81,12 @@ async function trustedClick(tabId, rect) {
 export function initTrustedClick() {
   chrome.debugger.onDetach.addListener((source) => {
     if (source.tabId) {
-      attachedTabs.delete(source.tabId);
+      clearTabState(source.tabId);
     }
+  });
+
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    clearTabState(tabId);
   });
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -84,9 +94,19 @@ export function initTrustedClick() {
       return false;
     }
 
+    if (!isYouTubeTabUrl(sender.tab.url)) {
+      sendResponse({ ok: false, error: "Invalid tab URL" });
+      return false;
+    }
+
     chrome.storage.local.get(STORAGE_KEYS.enabled, async ({ [STORAGE_KEYS.enabled]: enabled = true }) => {
       if (enabled === false) {
         sendResponse({ ok: false, disabled: true });
+        return;
+      }
+
+      if (!isValidClickRect(message.rect)) {
+        sendResponse({ ok: false, error: "Invalid click rect" });
         return;
       }
 

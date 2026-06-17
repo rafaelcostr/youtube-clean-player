@@ -133,14 +133,5 @@
       "urlFilter": "||youtube.com/ads/",
       "resourceTypes": ["script", "xmlhttprequest", "image", "media", "sub_frame", "ping", "other"]
     }
-  },
-  {
-    "id": 16,
-    "priority": 2,
-    "action": { "type": "block" },
-    "condition": {
-      "urlFilter": "||youtube.com/youtubei/v1/log_event",
-      "resourceTypes": ["script", "xmlhttprequest", "ping", "other"]
-    }
   }
 ]

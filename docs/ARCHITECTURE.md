@@ -50,7 +50,7 @@ flowchart TB
 
 ### `src/shared/`
 
-Constantes (`constants.js`) e seletores CSS (`selectors.js`) usados por background, content, page e popup.
+Constantes (`constants.js`), validações (`validation.js`) e seletores CSS (`selectors.js`) usados por background, content, page e popup.
 
 ### `src/background/`
 
@@ -64,9 +64,9 @@ Service worker em ES module.
 
 Roda no contexto isolado da extensão em `youtube.com`.
 
-- `injector.js` — injeta `src/page/index.js` como `<script type="module">`
+- `injector.js` — injeta `dist/page.js` e reinjeta quando a versão da extensão muda
 - `cosmetic.js` — observa o DOM e esconde promoções
-- `bridge.js` — sincroniza flag `enabled` no `dataset` e repassa `postMessage` ao background
+- `bridge.js` — token de sessão, flag `enabled` no `dataset` e repasse de `postMessage` ao background
 - `stats.js` — contadores salvos em `chrome.storage.local`
 - `index.js` — orquestra a inicialização
 
@@ -87,13 +87,13 @@ Interface simples: toggle global, contadores e última ação.
 
 ### `rules/ads.json`
 
-16 regras estáticas MV3 (`declarativeNetRequest`). Domínios Google Ads + endpoints do YouTube.
+15 regras estáticas MV3 (`declarativeNetRequest`). Domínios Google Ads + endpoints do YouTube.
 
 ## Comunicação entre contextos
 
 | De | Para | Canal |
 |----|------|-------|
-| page | content | `window.postMessage` |
+| page | content | `window.postMessage` (com token de sessão) |
 | content | background | `chrome.runtime.sendMessage` |
 | popup | background/content | `chrome.storage.onChanged` |
 | page | content | `document.documentElement.dataset.cleanPlayerEnabled` |

@@ -4,7 +4,8 @@ import {
   MESSAGE_SOURCE,
   MESSAGE_TYPES
 } from "../shared/constants.js";
-import { PLAYER_SELECTORS, SKIP_BUTTON_SELECTORS } from "../shared/selectors.js";
+import { SKIP_BUTTON_SELECTORS } from "../shared/selectors.js";
+import { getBridgeToken } from "./bridge-token.js";
 import { getPlayer, isVisible } from "./dom.js";
 
 let lastTrustedClickAt = 0;
@@ -46,9 +47,14 @@ export function findSkipButton() {
 }
 
 export function requestTrustedClick(button) {
+  const token = getBridgeToken();
+  if (!token) {
+    return false;
+  }
+
   const now = Date.now();
   if (now - lastTrustedClickAt < CLICK_COOLDOWN_MS) {
-    return;
+    return false;
   }
 
   lastTrustedClickAt = now;
@@ -58,6 +64,7 @@ export function requestTrustedClick(button) {
     {
       source: MESSAGE_SOURCE,
       type: MESSAGE_TYPES.trustedClick,
+      token,
       rect: {
         x: rect.x,
         y: rect.y,
@@ -67,6 +74,8 @@ export function requestTrustedClick(button) {
     },
     "*"
   );
+
+  return true;
 }
 
 export function resetTrustedClickCooldown() {

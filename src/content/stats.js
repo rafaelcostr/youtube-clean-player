@@ -1,7 +1,6 @@
-import { STORAGE_KEYS } from "../shared/constants.js";
+import { STATUS_FIELDS, STORAGE_KEYS } from "../shared/constants.js";
 
 const defaultStatus = {
-  pageActions: 0,
   skippedVideoAds: 0,
   hiddenPromotions: 0,
   lastAction: "Extensão iniciada",
@@ -11,12 +10,11 @@ const defaultStatus = {
 let state = { ...defaultStatus };
 let saveTimer;
 
-export function getEnabledDefault() {
-  return true;
-}
-
 export function record(action, field) {
-  state.pageActions += 1;
+  if (!STATUS_FIELDS.includes(field)) {
+    return;
+  }
+
   state[field] += 1;
   state.lastAction = action;
   saveStatus();
@@ -37,6 +35,19 @@ export async function loadEnabledState() {
   return stored[STORAGE_KEYS.enabled] !== false;
 }
 
-export function bootstrapStats() {
-  saveStatus();
+export async function bootstrapStats() {
+  const stored = await chrome.storage.local.get(STORAGE_KEYS.status);
+  const saved = stored[STORAGE_KEYS.status];
+
+  if (!saved || typeof saved !== "object") {
+    return;
+  }
+
+  state = {
+    ...defaultStatus,
+    skippedVideoAds: saved.skippedVideoAds ?? defaultStatus.skippedVideoAds,
+    hiddenPromotions: saved.hiddenPromotions ?? defaultStatus.hiddenPromotions,
+    lastAction: saved.lastAction ?? defaultStatus.lastAction,
+    updatedAt: saved.updatedAt ?? defaultStatus.updatedAt
+  };
 }

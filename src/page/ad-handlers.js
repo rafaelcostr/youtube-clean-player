@@ -3,16 +3,23 @@ import { STATIC_AD_MARKERS } from "../shared/selectors.js";
 import { getAdKey, getPlayer, getVideo, hasActiveAdSignal, isAdPlaying } from "./dom.js";
 import { shouldDeferAdHandling } from "./navigation-grace.js";
 import { isEnabled, muteOnce } from "./mute.js";
+import { getBridgeToken } from "./bridge-token.js";
 import { findSkipButton, requestTrustedClick } from "./skip-button.js";
 
 let lastNotifyClickKey = "";
 let lastNotifySeekKey = "";
 
 function notify(method, key) {
+  const token = getBridgeToken();
+  if (!token) {
+    return;
+  }
+
   window.postMessage(
     {
       source: MESSAGE_SOURCE,
       type: MESSAGE_TYPES.skip,
+      token,
       method,
       key
     },
@@ -20,7 +27,7 @@ function notify(method, key) {
   );
 }
 
-export function isVideoAd(player) {
+function isVideoAd(player) {
   if (!player) {
     return false;
   }
@@ -41,7 +48,7 @@ export function isVideoAd(player) {
   return hasActiveAdSignal() || isAdPlaying();
 }
 
-export function isStaticAd(player) {
+function isStaticAd(player) {
   if (!player || !isAdPlaying()) {
     return false;
   }
@@ -102,7 +109,9 @@ export function handleStaticAd() {
     return;
   }
 
-  requestTrustedClick(skipButton);
+  if (!requestTrustedClick(skipButton)) {
+    return;
+  }
 
   const adKey = getAdKey();
   if (lastNotifyClickKey !== adKey) {

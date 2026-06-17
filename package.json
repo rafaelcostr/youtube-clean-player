@@ -1,10 +1,11 @@
 {
   "name": "youtube-clean-player",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.9",
   "description": "Extensão pessoal para reduzir anúncios e promoções no YouTube.",
   "scripts": {
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

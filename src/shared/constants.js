@@ -7,16 +7,16 @@ export const STORAGE_KEYS = {
 
 export const DATASET_KEYS = {
   enabled: "cleanPlayerEnabled",
-  skipLoaded: "cleanPlayerSkipLoaded"
+  skipLoaded: "cleanPlayerSkipLoaded",
+  token: "cleanPlayerToken",
+  version: "cleanPlayerVersion"
 };
 
 export const RULESET_ID = "ads";
-export const NETWORK_RULES_COUNT = 16;
+export const NETWORK_RULES_COUNT = 15;
 
 export const CLICK_COOLDOWN_MS = 280;
-export const VIDEO_CHECK_MS = 200;
-export const STATIC_CHECK_MS = 200;
-export const AD_MUTE_CHECK_MS = 100;
+export const PLAYER_TICK_MS = 200;
 export const NAVIGATION_GRACE_MS = 1200;
 export const MAX_VIDEO_AD_DURATION = 120;
 
@@ -35,3 +35,5 @@ export const SKIP_METHODS = {
 export const RUNTIME_ACTIONS = {
   trustedClick: "trustedClick"
 };
+
+export const STATUS_FIELDS = ["skippedVideoAds", "hiddenPromotions"];

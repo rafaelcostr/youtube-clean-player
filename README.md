@@ -67,6 +67,7 @@ Isso ocorre porque a extensão usa `chrome.debugger` para simular um clique real
 |---------|------|
 | `npm install` | Instala dependências de build |
 | `npm run build` | Gera `dist/` a partir de `src/` |
+| `npm run watch` | Rebuild automático ao editar `src/` |
 
 ## Manutenção rápida
 

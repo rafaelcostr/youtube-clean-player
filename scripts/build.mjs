@@ -13,31 +13,38 @@ const shared = {
   logLevel: "info"
 };
 
-await Promise.all([
-  esbuild.build({
+const builds = [
+  {
     ...shared,
     entryPoints: ["src/background/index.js"],
     outfile: "dist/background.js",
     format: "esm"
-  }),
-  esbuild.build({
+  },
+  {
     ...shared,
     entryPoints: ["src/content/index.js"],
     outfile: "dist/content.js",
     format: "iife"
-  }),
-  esbuild.build({
+  },
+  {
     ...shared,
     entryPoints: ["src/page/index.js"],
     outfile: "dist/page.js",
     format: "iife"
-  }),
-  esbuild.build({
+  },
+  {
     ...shared,
     entryPoints: ["src/popup/popup.js"],
     outfile: "dist/popup/popup.js",
     format: "iife"
-  })
-]);
+  }
+];
 
-console.log("Build concluído: dist/");
+if (process.argv.includes("--watch")) {
+  const contexts = await Promise.all(builds.map((options) => esbuild.context(options)));
+  await Promise.all(contexts.map((context) => context.watch()));
+  console.log("Watch ativo: dist/");
+} else {
+  await Promise.all(builds.map((options) => esbuild.build(options)));
+  console.log("Build concluído: dist/");
+}

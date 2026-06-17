@@ -1,9 +1,11 @@
-import { AD_MUTE_CHECK_MS, STATIC_CHECK_MS, VIDEO_CHECK_MS } from "../shared/constants.js";
+import { PLAYER_TICK_MS } from "../shared/constants.js";
 import { isAdPlaying } from "./dom.js";
 import { handleStaticAd, handleVideoAd, resetAdHandlers } from "./ad-handlers.js";
 import { markNavigation } from "./navigation-grace.js";
-import { muteDuringAd, restoreVolume } from "./mute.js";
+import { isEnabled, muteDuringAd, restoreVolume } from "./mute.js";
 import { resetTrustedClickCooldown } from "./skip-button.js";
+
+let tickIntervalId = null;
 
 function resetWhenAdEnds() {
   if (isAdPlaying()) {
@@ -15,25 +17,36 @@ function resetWhenAdEnds() {
   resetTrustedClickCooldown();
 }
 
+function tick() {
+  muteDuringAd();
+  resetWhenAdEnds();
+
+  if (!isEnabled()) {
+    return;
+  }
+
+  handleVideoAd();
+  handleStaticAd();
+}
+
+function onNavigateFinish() {
+  markNavigation();
+  resetWhenAdEnds();
+}
+
+export function stopAdController() {
+  if (tickIntervalId !== null) {
+    window.clearInterval(tickIntervalId);
+    tickIntervalId = null;
+  }
+
+  document.removeEventListener("yt-navigate-finish", onNavigateFinish);
+}
+
 export function startAdController() {
-  window.setInterval(() => {
-    muteDuringAd();
-  }, AD_MUTE_CHECK_MS);
+  stopAdController();
 
-  window.setInterval(() => {
-    muteDuringAd();
-    resetWhenAdEnds();
-    handleVideoAd();
-  }, VIDEO_CHECK_MS);
-
-  window.setInterval(() => {
-    muteDuringAd();
-    resetWhenAdEnds();
-    handleStaticAd();
-  }, STATIC_CHECK_MS);
-
-  document.addEventListener("yt-navigate-finish", () => {
-    markNavigation();
-    resetWhenAdEnds();
-  });
+  tickIntervalId = window.setInterval(tick, PLAYER_TICK_MS);
+  document.addEventListener("yt-navigate-finish", onNavigateFinish);
+  tick();
 }
