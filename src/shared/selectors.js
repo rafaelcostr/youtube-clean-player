@@ -35,6 +35,12 @@ export const STATIC_AD_MARKERS = [
   ".ytp-ad-preview-container"
 ];
 
+/** Overlays de imagem — anúncio estático (não confundir com anúncio em vídeo). */
+export const STATIC_IMAGE_AD_MARKERS = [
+  ".ytp-ad-image-overlay",
+  ".ytp-ad-overlay-image"
+];
+
 export const SKIP_BUTTON_SELECTORS = [
   ".ytp-skip-ad-button",
   ".ytp-ad-skip-button-modern",

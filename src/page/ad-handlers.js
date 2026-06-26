@@ -1,6 +1,6 @@
 import { MAX_VIDEO_AD_DURATION, MESSAGE_SOURCE, MESSAGE_TYPES, SKIP_METHODS } from "../shared/constants.js";
-import { STATIC_AD_MARKERS } from "../shared/selectors.js";
-import { getAdKey, getPlayer, getVideo, hasActiveAdSignal, isAdPlaying } from "./dom.js";
+import { STATIC_IMAGE_AD_MARKERS } from "../shared/selectors.js";
+import { getAdKey, getPlayer, getVideo, isAdPlaying, isStaticImageAd, isVisible } from "./dom.js";
 import { shouldDeferAdHandling } from "./navigation-grace.js";
 import { isEnabled, muteOnce } from "./mute.js";
 import { getBridgeToken } from "./bridge-token.js";
@@ -28,32 +28,11 @@ function notify(method, key) {
 }
 
 function isVideoAd(player) {
-  if (!player) {
+  if (!player || !isAdPlaying() || isStaticImageAd(player)) {
     return false;
   }
 
-  if (player.querySelector(STATIC_AD_MARKERS.join(", "))) {
-    return false;
-  }
-
-  const video = getVideo();
-  if (!video || !Number.isFinite(video.duration) || video.duration <= 0) {
-    return false;
-  }
-
-  if (video.duration > MAX_VIDEO_AD_DURATION) {
-    return false;
-  }
-
-  return hasActiveAdSignal() || isAdPlaying();
-}
-
-function isStaticAd(player) {
-  if (!player || !isAdPlaying()) {
-    return false;
-  }
-
-  return !isVideoAd(player);
+  return !!getVideo();
 }
 
 function seekVideoAd() {
@@ -64,11 +43,27 @@ function seekVideoAd() {
     video.duration <= 0 ||
     video.duration > MAX_VIDEO_AD_DURATION
   ) {
-    return;
+    return false;
   }
 
   video.muted = true;
   video.currentTime = Math.max(video.duration - 0.05, 0);
+  return true;
+}
+
+function trySkipButtonClick() {
+  const skipButton = findSkipButton();
+  if (!skipButton || !requestTrustedClick(skipButton)) {
+    return false;
+  }
+
+  const adKey = getAdKey();
+  if (lastNotifyClickKey !== adKey) {
+    lastNotifyClickKey = adKey;
+    notify(SKIP_METHODS.click, adKey);
+  }
+
+  return true;
 }
 
 export function handleVideoAd() {
@@ -83,12 +78,24 @@ export function handleVideoAd() {
 
   muteOnce();
 
-  const adKey = getAdKey();
-  seekVideoAd();
+  const video = getVideo();
+  const durationReady = video && Number.isFinite(video.duration) && video.duration > 0;
 
-  if (lastNotifySeekKey !== adKey) {
-    lastNotifySeekKey = adKey;
-    notify(SKIP_METHODS.seek, adKey);
+  if (durationReady && video.duration <= MAX_VIDEO_AD_DURATION) {
+    if (!seekVideoAd()) {
+      return;
+    }
+
+    const adKey = getAdKey();
+    if (lastNotifySeekKey !== adKey) {
+      lastNotifySeekKey = adKey;
+      notify(SKIP_METHODS.seek, adKey);
+    }
+    return;
+  }
+
+  if (durationReady && video.duration > MAX_VIDEO_AD_DURATION) {
+    trySkipButtonClick();
   }
 }
 
@@ -98,26 +105,12 @@ export function handleStaticAd() {
   }
 
   const player = getPlayer();
-  if (!player || !isStaticAd(player)) {
+  if (!player || !isStaticImageAd(player)) {
     return;
   }
 
   muteOnce();
-
-  const skipButton = findSkipButton();
-  if (!skipButton) {
-    return;
-  }
-
-  if (!requestTrustedClick(skipButton)) {
-    return;
-  }
-
-  const adKey = getAdKey();
-  if (lastNotifyClickKey !== adKey) {
-    lastNotifyClickKey = adKey;
-    notify(SKIP_METHODS.click, adKey);
-  }
+  trySkipButtonClick();
 }
 
 export function resetAdHandlers() {

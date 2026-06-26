@@ -21,6 +21,8 @@ export const NAVIGATION_GRACE_MS = 1200;
 export const MAX_VIDEO_AD_DURATION = 120;
 
 export const COUNTDOWN_PATTERN = /pular em|skip in|ignorar em|skip ad in/i;
+export const SKIP_LABEL_PATTERN = /pular|skip|ignorar/i;
+export const PAUSE_LABEL_PATTERN = /\b(pausar|pause)\b/i;
 
 export const MESSAGE_TYPES = {
   skip: "skip",
