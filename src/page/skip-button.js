@@ -2,11 +2,8 @@ import {
   CLICK_COOLDOWN_MS,
   COUNTDOWN_PATTERN,
   MESSAGE_SOURCE,
-  MESSAGE_TYPES,
-  PAUSE_LABEL_PATTERN,
-  SKIP_LABEL_PATTERN
+  MESSAGE_TYPES
 } from "../shared/constants.js";
-import { SKIP_BUTTON_SELECTORS } from "../shared/selectors.js";
 import { getBridgeToken } from "./bridge-token.js";
 import { getPlayer, isVisible } from "./dom.js";
 
@@ -18,6 +15,15 @@ const SKIP_BUTTON_CLASSES = [
   "ytp-ad-skip-button"
 ];
 
+const SKIP_BUTTON_SELECTOR = SKIP_BUTTON_CLASSES.map((className) => `.${className}`).join(", ");
+
+const AD_SKIP_SEARCH_ROOTS = [
+  ".ytp-ad-module",
+  ".ytp-ad-player-overlay",
+  ".ytp-ad-overlay-container",
+  ".html5-video-player"
+];
+
 function getElementLabel(element) {
   return `${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`.trim();
 }
@@ -27,45 +33,72 @@ function isPlayPauseControl(element) {
     return true;
   }
 
-  if (element.classList.contains("ytp-play-button")) {
-    return true;
-  }
-
-  const label = getElementLabel(element).toLowerCase();
-  return PAUSE_LABEL_PATTERN.test(label) && !SKIP_LABEL_PATTERN.test(label);
+  return element.classList.contains("ytp-play-button") || !!element.closest(".ytp-play-button");
 }
 
 function isSkipCountdown(element) {
   return COUNTDOWN_PATTERN.test(getElementLabel(element));
 }
 
-function isSkipControl(element) {
-  if (!element || !isVisible(element) || isPlayPauseControl(element) || isSkipCountdown(element)) {
+function isSkipReadyLabel(label) {
+  const normalized = label.toLowerCase().trim();
+  if (!normalized || COUNTDOWN_PATTERN.test(normalized)) {
     return false;
   }
 
-  if (SKIP_BUTTON_CLASSES.some((className) => element.classList.contains(className))) {
-    return true;
+  return (
+    /^pular(\s|$)/i.test(normalized) ||
+    /^skip(\s|$)/i.test(normalized) ||
+    /^ignorar(\s|$)/i.test(normalized) ||
+    /skip ad/i.test(normalized) ||
+    /pular an/i.test(normalized)
+  );
+}
+
+function resolveSkipButton(element) {
+  if (!element || !isVisible(element) || isPlayPauseControl(element)) {
+    return null;
   }
 
-  if (element.closest(SKIP_BUTTON_CLASSES.map((className) => `.${className}`).join(", "))) {
-    return true;
+  const skipRoot = element.matches(SKIP_BUTTON_SELECTOR)
+    ? element
+    : element.closest(SKIP_BUTTON_SELECTOR);
+
+  if (!skipRoot || !isVisible(skipRoot) || isPlayPauseControl(skipRoot) || isSkipCountdown(skipRoot)) {
+    return null;
   }
 
-  const label = getElementLabel(element);
-  return SKIP_LABEL_PATTERN.test(label) && !PAUSE_LABEL_PATTERN.test(label);
+  const label = getElementLabel(skipRoot);
+  if (label && !isSkipReadyLabel(label)) {
+    return null;
+  }
+
+  return skipRoot;
+}
+
+function getAdSkipSearchRoots(player) {
+  const roots = [];
+
+  for (const selector of AD_SKIP_SEARCH_ROOTS) {
+    const root = player.querySelector(selector);
+    if (root && !roots.includes(root)) {
+      roots.push(root);
+    }
+  }
+
+  return roots.length > 0 ? roots : [player];
 }
 
 export function findSkipButton() {
   const player = getPlayer() || document;
 
-  for (const selector of SKIP_BUTTON_SELECTORS) {
-    for (const element of player.querySelectorAll(selector)) {
-      if (isSkipControl(element)) {
-        return (
-          element.closest(SKIP_BUTTON_CLASSES.map((className) => `.${className}`).join(", ")) ||
-          element
-        );
+  for (const root of getAdSkipSearchRoots(player)) {
+    for (const className of SKIP_BUTTON_CLASSES) {
+      for (const element of root.querySelectorAll(`.${className}`)) {
+        const skipButton = resolveSkipButton(element);
+        if (skipButton) {
+          return skipButton;
+        }
       }
     }
   }
@@ -74,7 +107,8 @@ export function findSkipButton() {
 }
 
 export function requestTrustedClick(button) {
-  if (!isSkipControl(button)) {
+  const skipButton = resolveSkipButton(button);
+  if (!skipButton) {
     return false;
   }
 
@@ -90,7 +124,7 @@ export function requestTrustedClick(button) {
 
   lastTrustedClickAt = now;
 
-  const rect = button.getBoundingClientRect();
+  const rect = skipButton.getBoundingClientRect();
   window.postMessage(
     {
       source: MESSAGE_SOURCE,

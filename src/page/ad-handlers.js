@@ -1,6 +1,12 @@
-import { MAX_VIDEO_AD_DURATION, MESSAGE_SOURCE, MESSAGE_TYPES, SKIP_METHODS } from "../shared/constants.js";
-import { STATIC_IMAGE_AD_MARKERS } from "../shared/selectors.js";
-import { getAdKey, getPlayer, getVideo, isAdPlaying, isStaticImageAd, isVisible } from "./dom.js";
+import { MESSAGE_SOURCE, MESSAGE_TYPES, SKIP_METHODS } from "../shared/constants.js";
+import {
+  getAdKey,
+  getPlayer,
+  getVideo,
+  isAdPlaying,
+  isStaticImageAd,
+  isVideoAdStream
+} from "./dom.js";
 import { shouldDeferAdHandling } from "./navigation-grace.js";
 import { isEnabled, muteOnce } from "./mute.js";
 import { getBridgeToken } from "./bridge-token.js";
@@ -27,27 +33,32 @@ function notify(method, key) {
   );
 }
 
-function isVideoAd(player) {
-  if (!player || !isAdPlaying() || isStaticImageAd(player)) {
+function trySeekVideoAd() {
+  const video = getVideo();
+  if (!video || !Number.isFinite(video.duration) || video.duration <= 0) {
     return false;
   }
 
-  return !!getVideo();
-}
+  const targetTime = Math.max(video.duration - 0.05, 0);
 
-function seekVideoAd() {
-  const video = getVideo();
-  if (
-    !video ||
-    !Number.isFinite(video.duration) ||
-    video.duration <= 0 ||
-    video.duration > MAX_VIDEO_AD_DURATION
-  ) {
-    return false;
+  if (video.currentTime >= targetTime - 0.25) {
+    return true;
   }
 
   video.muted = true;
-  video.currentTime = Math.max(video.duration - 0.05, 0);
+  const before = video.currentTime;
+
+  try {
+    video.currentTime = targetTime;
+  } catch {
+    return false;
+  }
+
+  // YouTube bloqueia seek em muitos anúncios longos — não tratar como sucesso.
+  if (video.currentTime < before + 0.5 && video.currentTime < targetTime - 1) {
+    return false;
+  }
+
   return true;
 }
 
@@ -72,20 +83,18 @@ export function handleVideoAd() {
   }
 
   const player = getPlayer();
-  if (!player || !isVideoAd(player)) {
+  if (!player || !isVideoAdStream(player)) {
     return;
   }
 
   muteOnce();
 
-  const video = getVideo();
-  const durationReady = video && Number.isFinite(video.duration) && video.duration > 0;
+  // Anúncios longos puláveis (ex.: 2–3 min) só saem pelo botão Pular.
+  if (findSkipButton() && trySkipButtonClick()) {
+    return;
+  }
 
-  if (durationReady && video.duration <= MAX_VIDEO_AD_DURATION) {
-    if (!seekVideoAd()) {
-      return;
-    }
-
+  if (trySeekVideoAd()) {
     const adKey = getAdKey();
     if (lastNotifySeekKey !== adKey) {
       lastNotifySeekKey = adKey;
@@ -94,9 +103,7 @@ export function handleVideoAd() {
     return;
   }
 
-  if (durationReady && video.duration > MAX_VIDEO_AD_DURATION) {
-    trySkipButtonClick();
-  }
+  trySkipButtonClick();
 }
 
 export function handleStaticAd() {

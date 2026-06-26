@@ -1,5 +1,5 @@
 import { PLAYER_TICK_MS } from "../shared/constants.js";
-import { isAdPlaying } from "./dom.js";
+import { getPlayer, isAdPlaying, isVideoAdStream } from "./dom.js";
 import { handleStaticAd, handleVideoAd, resetAdHandlers } from "./ad-handlers.js";
 import { markNavigation } from "./navigation-grace.js";
 import { isEnabled, muteDuringAd, restoreVolume } from "./mute.js";
@@ -21,11 +21,16 @@ function tick() {
   muteDuringAd();
   resetWhenAdEnds();
 
-  if (!isEnabled()) {
+  if (!isEnabled() || !isAdPlaying()) {
     return;
   }
 
-  handleVideoAd();
+  const player = getPlayer();
+  if (player && isVideoAdStream(player)) {
+    handleVideoAd();
+    return;
+  }
+
   handleStaticAd();
 }
 

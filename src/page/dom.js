@@ -1,9 +1,4 @@
 import {
-  COUNTDOWN_PATTERN,
-  PAUSE_LABEL_PATTERN,
-  SKIP_LABEL_PATTERN
-} from "../shared/constants.js";
-import {
   PLAYER_SELECTORS,
   SKIP_BUTTON_SELECTORS,
   STATIC_IMAGE_AD_MARKERS
@@ -17,8 +12,30 @@ export function isAdPlaying() {
   return !!document.querySelector(PLAYER_SELECTORS.adPlaying);
 }
 
+export function getVideo() {
+  return document.querySelector(PLAYER_SELECTORS.video);
+}
+
+/** Anúncio com stream de vídeo real (mesmo que tenha overlay de imagem no DOM). */
+export function isVideoAdStream(player = getPlayer()) {
+  if (!player || !isAdPlaying()) {
+    return false;
+  }
+
+  const video = getVideo();
+  if (!video) {
+    return false;
+  }
+
+  if (Number.isFinite(video.duration) && video.duration > 0) {
+    return true;
+  }
+
+  return video.readyState >= 2 && (video.currentTime > 0 || !video.paused);
+}
+
 export function isStaticImageAd(player = getPlayer()) {
-  if (!player) {
+  if (!player || !isAdPlaying() || isVideoAdStream(player)) {
     return false;
   }
 
@@ -47,7 +64,7 @@ export function hasActiveAdSignal() {
     return true;
   }
 
-  if (isStaticImageAd(player)) {
+  if (isStaticImageAd(player) || isVideoAdStream(player)) {
     return true;
   }
 
@@ -59,10 +76,6 @@ export function hasActiveAdSignal() {
   }
 
   return false;
-}
-
-export function getVideo() {
-  return document.querySelector(PLAYER_SELECTORS.video);
 }
 
 export function getAdKey() {
