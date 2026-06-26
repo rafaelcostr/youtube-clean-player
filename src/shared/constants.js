@@ -20,9 +20,10 @@ export const PLAYER_TICK_MS = 200;
 export const NAVIGATION_GRACE_MS = 1200;
 export const MAX_VIDEO_AD_DURATION = 120;
 
-export const COUNTDOWN_PATTERN = /pular em|skip in|ignorar em|skip ad in/i;
-export const SKIP_LABEL_PATTERN = /pular|skip|ignorar/i;
-export const PAUSE_LABEL_PATTERN = /\b(pausar|pause)\b/i;
+export const COUNTDOWN_PATTERN =
+  /pular an[uú]ncio em|pular em|skip ad in|skip in|ignorar em|\bem \d|\d+\s*(s|seg)/i;
+export const AD_CTA_LABEL_PATTERN =
+  /acessar|visit site|visit advertiser|anunciante|saiba mais|learn more|shop now|comprar/i;
 
 export const MESSAGE_TYPES = {
   skip: "skip",

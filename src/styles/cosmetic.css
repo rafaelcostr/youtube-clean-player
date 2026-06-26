@@ -12,6 +12,13 @@ ytd-statement-banner-renderer {
   display: none !important;
 }
 
+/* Evita cliques acidentais no CTA do anúncio ("Acessar o site") */
+.ytp-ad-action-interstitial,
+.ytp-ad-visit-advertiser-button,
+.ytp-ad-text-overlay .ytp-ad-button {
+  pointer-events: none !important;
+}
+
 /* Modal anti-bloqueador só quando aberto (evita travar scroll da página) */
 tp-yt-paper-dialog[opened]:has(.ytd-enforcement-message-view-model) {
   display: none !important;

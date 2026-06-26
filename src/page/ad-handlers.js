@@ -89,7 +89,6 @@ export function handleVideoAd() {
 
   muteOnce();
 
-  // Anúncios longos puláveis (ex.: 2–3 min) só saem pelo botão Pular.
   if (findSkipButton() && trySkipButtonClick()) {
     return;
   }
@@ -100,10 +99,7 @@ export function handleVideoAd() {
       lastNotifySeekKey = adKey;
       notify(SKIP_METHODS.seek, adKey);
     }
-    return;
   }
-
-  trySkipButtonClick();
 }
 
 export function handleStaticAd() {

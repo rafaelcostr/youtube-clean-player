@@ -1,4 +1,5 @@
 import {
+  AD_CTA_LABEL_PATTERN,
   CLICK_COOLDOWN_MS,
   COUNTDOWN_PATTERN,
   MESSAGE_SOURCE,
@@ -17,11 +18,11 @@ const SKIP_BUTTON_CLASSES = [
 
 const SKIP_BUTTON_SELECTOR = SKIP_BUTTON_CLASSES.map((className) => `.${className}`).join(", ");
 
-const AD_SKIP_SEARCH_ROOTS = [
-  ".ytp-ad-module",
-  ".ytp-ad-player-overlay",
-  ".ytp-ad-overlay-container",
-  ".html5-video-player"
+const AD_CTA_SELECTORS = [
+  ".ytp-ad-action-interstitial",
+  ".ytp-ad-text-overlay",
+  ".ytp-ad-visit-advertiser-button",
+  ".ytp-ad-button"
 ];
 
 function getElementLabel(element) {
@@ -36,27 +37,61 @@ function isPlayPauseControl(element) {
   return element.classList.contains("ytp-play-button") || !!element.closest(".ytp-play-button");
 }
 
+function isAdCtaElement(element) {
+  if (!element) {
+    return true;
+  }
+
+  for (const selector of AD_CTA_SELECTORS) {
+    if (element.closest(selector)) {
+      return true;
+    }
+  }
+
+  return AD_CTA_LABEL_PATTERN.test(getElementLabel(element));
+}
+
 function isSkipCountdown(element) {
-  return COUNTDOWN_PATTERN.test(getElementLabel(element));
+  const label = getElementLabel(element);
+  if (!label) {
+    return false;
+  }
+
+  if (COUNTDOWN_PATTERN.test(label)) {
+    return true;
+  }
+
+  return /\d/.test(label) && /pular|skip|ignorar/i.test(label);
 }
 
 function isSkipReadyLabel(label) {
   const normalized = label.toLowerCase().trim();
-  if (!normalized || COUNTDOWN_PATTERN.test(normalized)) {
+  if (!normalized) {
+    return false;
+  }
+
+  if (COUNTDOWN_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  if (/\d/.test(normalized) && /pular|skip|ignorar/i.test(normalized)) {
     return false;
   }
 
   return (
-    /^pular(\s|$)/i.test(normalized) ||
-    /^skip(\s|$)/i.test(normalized) ||
-    /^ignorar(\s|$)/i.test(normalized) ||
-    /skip ad/i.test(normalized) ||
-    /pular an/i.test(normalized)
+    normalized === "pular" ||
+    normalized === "skip" ||
+    normalized === "ignorar" ||
+    normalized === "pular anúncio" ||
+    normalized === "pular anuncio" ||
+    normalized === "skip ad" ||
+    normalized === "ignorar anúncio" ||
+    normalized === "ignorar anuncio"
   );
 }
 
 function resolveSkipButton(element) {
-  if (!element || !isVisible(element) || isPlayPauseControl(element)) {
+  if (!element || !isVisible(element) || isPlayPauseControl(element) || isAdCtaElement(element)) {
     return null;
   }
 
@@ -64,41 +99,38 @@ function resolveSkipButton(element) {
     ? element
     : element.closest(SKIP_BUTTON_SELECTOR);
 
-  if (!skipRoot || !isVisible(skipRoot) || isPlayPauseControl(skipRoot) || isSkipCountdown(skipRoot)) {
+  if (
+    !skipRoot ||
+    !isVisible(skipRoot) ||
+    isPlayPauseControl(skipRoot) ||
+    isAdCtaElement(skipRoot) ||
+    isSkipCountdown(skipRoot)
+  ) {
     return null;
   }
 
   const label = getElementLabel(skipRoot);
-  if (label && !isSkipReadyLabel(label)) {
+  if (!isSkipReadyLabel(label)) {
     return null;
   }
 
   return skipRoot;
 }
 
-function getAdSkipSearchRoots(player) {
-  const roots = [];
-
-  for (const selector of AD_SKIP_SEARCH_ROOTS) {
-    const root = player.querySelector(selector);
-    if (root && !roots.includes(root)) {
-      roots.push(root);
-    }
+export function findSkipButton() {
+  const player = getPlayer();
+  if (!player) {
+    return null;
   }
 
-  return roots.length > 0 ? roots : [player];
-}
+  const adModule = player.querySelector(".ytp-ad-module");
+  const searchRoot = adModule || player;
 
-export function findSkipButton() {
-  const player = getPlayer() || document;
-
-  for (const root of getAdSkipSearchRoots(player)) {
-    for (const className of SKIP_BUTTON_CLASSES) {
-      for (const element of root.querySelectorAll(`.${className}`)) {
-        const skipButton = resolveSkipButton(element);
-        if (skipButton) {
-          return skipButton;
-        }
+  for (const className of SKIP_BUTTON_CLASSES) {
+    for (const element of searchRoot.querySelectorAll(`.${className}`)) {
+      const skipButton = resolveSkipButton(element);
+      if (skipButton) {
+        return skipButton;
       }
     }
   }
