@@ -1,5 +1,4 @@
 import { CLICK_COOLDOWN_MS, RUNTIME_ACTIONS, STORAGE_KEYS } from "../shared/constants.js";
-import { isValidClickRect, isYouTubeTabUrl } from "../shared/validation.js";
 
 const attachedTabs = new Set();
 const lastClickAtByTab = new Map();
@@ -64,6 +63,9 @@ async function trustedClick(tabId, rect) {
       clickCount: 1
     });
 
+    await debuggerCall(chrome.debugger.detach, target);
+    attachedTabs.delete(tabId);
+
     return { ok: true };
   } catch (error) {
     clearTabState(tabId);
@@ -71,7 +73,7 @@ async function trustedClick(tabId, rect) {
     try {
       await debuggerCall(chrome.debugger.detach, target);
     } catch {
-      // Ignore detach errors after a failed click attempt.
+      // Ignore detach errors.
     }
 
     return { ok: false, error: error.message };
@@ -94,8 +96,9 @@ export function initTrustedClick() {
       return false;
     }
 
-    if (!isYouTubeTabUrl(sender.tab.url)) {
-      sendResponse({ ok: false, error: "Invalid tab URL" });
+    const url = sender.url || sender.tab.url || "";
+    if (url && !/^https:\/\/(www\.|m\.)?youtube\.com\//.test(url)) {
+      sendResponse({ ok: false, error: "Invalid tab" });
       return false;
     }
 
@@ -105,12 +108,13 @@ export function initTrustedClick() {
         return;
       }
 
-      if (!isValidClickRect(message.rect)) {
-        sendResponse({ ok: false, error: "Invalid click rect" });
+      const rect = message.rect;
+      if (!rect || typeof rect !== "object") {
+        sendResponse({ ok: false, error: "Invalid rect" });
         return;
       }
 
-      const result = await trustedClick(sender.tab.id, message.rect);
+      const result = await trustedClick(sender.tab.id, rect);
       sendResponse(result);
     });
 

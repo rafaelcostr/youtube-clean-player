@@ -10,21 +10,19 @@
       <h1>Clean Player</h1>
       <label class="toggle">
         <input type="checkbox" id="enabled" checked>
-        <span>Bloqueio ativo</span>
+        <span>Ativo</span>
       </label>
+      <label class="toggle">
+        <input type="checkbox" id="autoSkip" checked>
+        <span>Pular automaticamente</span>
+      </label>
+      <p class="hint">Silencia o anúncio, restaura o som do vídeo ao terminar e clica em Pular quando disponível.</p>
+      <p class="hint warn">Se o YouTube bloquear, desmarque Pular automaticamente e clique em Pular você mesmo.</p>
       <p class="status" id="statusText">Ativo no YouTube</p>
       <dl>
         <div>
           <dt>Anúncios pulados</dt>
           <dd id="skipped">0</dd>
-        </div>
-        <div>
-          <dt>Promoções ocultadas</dt>
-          <dd id="hidden">0</dd>
-        </div>
-        <div>
-          <dt>Regras de rede</dt>
-          <dd id="blocked">—</dd>
         </div>
       </dl>
       <p class="last" id="lastAction">Abra um vídeo do YouTube para testar.</p>

@@ -1,7 +1,4 @@
 export const AD_UI_SELECTORS = [
-  ".ytp-ad-overlay-container",
-  ".ytp-ad-message-container",
-  ".ytp-ad-player-overlay",
   "#masthead-ad",
   "ytd-ad-slot-renderer",
   "ytd-banner-promo-renderer",
@@ -26,6 +23,19 @@ export const IDLE_CONFIRM_SELECTORS = [
   "yt-confirm-dialog-renderer #confirm-button button",
   "yt-confirm-dialog-renderer #confirm-button #button",
   "yt-confirm-dialog-renderer #confirm-button"
+];
+
+export const ENFORCEMENT_ROOT_SELECTORS = [
+  "ytd-enforcement-message-view-model",
+  ".ytd-enforcement-message-view-model",
+  "ytd-enforcement-message-view-model-renderer",
+  ".ytd-enforcement-message-view-model-renderer"
+];
+
+/** Botão "Permitir anúncios do YouTube" no modal anti-bloqueador. */
+export const ENFORCEMENT_ALLOW_PATTERNS = [
+  /permitir an[uú]ncios/i,
+  /allow youtube ads/i
 ];
 
 export const STATIC_AD_MARKERS = [

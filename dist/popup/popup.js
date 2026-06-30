@@ -2,37 +2,58 @@
   // src/shared/constants.js
   var STORAGE_KEYS = {
     enabled: "enabled",
-    status: "cleanPlayerStatus"
+    autoSkip: "autoSkip",
+    status: "status"
   };
-  var NETWORK_RULES_COUNT = 16;
 
   // src/popup/popup.js
   var enabledInput = document.getElementById("enabled");
+  var autoSkipInput = document.getElementById("autoSkip");
   var statusText = document.getElementById("statusText");
   var skipped = document.getElementById("skipped");
-  var hidden = document.getElementById("hidden");
-  var blocked = document.getElementById("blocked");
   var lastAction = document.getElementById("lastAction");
   function updateStatusUi(isEnabled) {
     statusText.textContent = isEnabled ? "Ativo no YouTube" : "Pausado";
     statusText.style.color = isEnabled ? "#49d17d" : "#f0a04b";
   }
-  blocked.textContent = `${NETWORK_RULES_COUNT} regras`;
-  chrome.storage.local.get([STORAGE_KEYS.enabled, STORAGE_KEYS.status], (stored) => {
-    const enabled = stored[STORAGE_KEYS.enabled] !== false;
-    enabledInput.checked = enabled;
-    updateStatusUi(enabled);
-    const status = stored[STORAGE_KEYS.status];
+  function updateStatsUi(status) {
     if (!status) {
       return;
     }
     skipped.textContent = status.skippedVideoAds || 0;
-    hidden.textContent = status.hiddenPromotions || 0;
     lastAction.textContent = status.lastAction || lastAction.textContent;
-  });
+  }
+  chrome.storage.local.get(
+    [STORAGE_KEYS.enabled, STORAGE_KEYS.autoSkip, STORAGE_KEYS.status],
+    (stored) => {
+      const isEnabled = stored[STORAGE_KEYS.enabled] !== false;
+      enabledInput.checked = isEnabled;
+      autoSkipInput.checked = stored[STORAGE_KEYS.autoSkip] !== false;
+      updateStatusUi(isEnabled);
+      updateStatsUi(stored[STORAGE_KEYS.status]);
+    }
+  );
   enabledInput.addEventListener("change", async () => {
-    const isEnabled = enabledInput.checked;
-    await chrome.storage.local.set({ [STORAGE_KEYS.enabled]: isEnabled });
-    updateStatusUi(isEnabled);
+    await chrome.storage.local.set({ [STORAGE_KEYS.enabled]: enabledInput.checked });
+    updateStatusUi(enabledInput.checked);
+  });
+  autoSkipInput.addEventListener("change", async () => {
+    await chrome.storage.local.set({ [STORAGE_KEYS.autoSkip]: autoSkipInput.checked });
+  });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") {
+      return;
+    }
+    if (changes[STORAGE_KEYS.enabled]) {
+      const isEnabled = changes[STORAGE_KEYS.enabled].newValue !== false;
+      enabledInput.checked = isEnabled;
+      updateStatusUi(isEnabled);
+    }
+    if (changes[STORAGE_KEYS.autoSkip]) {
+      autoSkipInput.checked = changes[STORAGE_KEYS.autoSkip].newValue !== false;
+    }
+    if (changes[STORAGE_KEYS.status]) {
+      updateStatsUi(changes[STORAGE_KEYS.status].newValue);
+    }
   });
 })();

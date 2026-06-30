@@ -1,50 +1,43 @@
-import {
-  DATASET_KEYS,
-  MESSAGE_SOURCE,
-  MESSAGE_TYPES,
-  RUNTIME_ACTIONS,
-  SKIP_METHODS,
-  STORAGE_KEYS
-} from "../shared/constants.js";
-import { isValidClickRect } from "../shared/validation.js";
+import { MESSAGE_SOURCE, MESSAGE_TYPES, RUNTIME_ACTIONS, STORAGE_KEYS } from "../shared/constants.js";
 import { record } from "./stats.js";
 
+const enabledRef = { current: true };
 let bridgeToken = "";
 
-export function initBridgeToken() {
+function syncLocalStorage(enabled, token) {
+  try {
+    localStorage.setItem("ycp_enabled", enabled ? "1" : "0");
+    if (token) {
+      localStorage.setItem("ycp_token", token);
+    }
+  } catch {
+    // localStorage indisponível em contextos restritos.
+  }
+}
+
+function applyEnabled(enabled) {
+  enabledRef.current = enabled;
+  syncLocalStorage(enabled, bridgeToken);
+}
+
+export function initBridge() {
   bridgeToken =
     crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-  document.documentElement.dataset[DATASET_KEYS.token] = bridgeToken;
+  syncLocalStorage(true, bridgeToken);
 }
 
-export function syncEnabledFlag(enabled) {
-  document.documentElement.dataset[DATASET_KEYS.enabled] = enabled ? "true" : "false";
-}
-
-function isAuthenticatedMessage(data) {
-  return typeof data?.token === "string" && data.token.length > 0 && data.token === bridgeToken;
-}
-
-export function initPageBridge(enabledRef) {
+export function initPageBridge() {
   window.addEventListener("message", (event) => {
     if (event.source !== window || event.data?.source !== MESSAGE_SOURCE) {
       return;
     }
 
-    if (!isAuthenticatedMessage(event.data)) {
+    if (event.data.token !== bridgeToken) {
       return;
     }
 
     if (event.data.type === MESSAGE_TYPES.trustedClick) {
-      if (!enabledRef.current) {
-        return;
-      }
-
-      if (!isValidClickRect(event.data.rect, window)) {
-        return;
-      }
-
-      if (!chrome.runtime?.id) {
+      if (!enabledRef.current || !chrome.runtime?.id) {
         return;
       }
 
@@ -60,25 +53,21 @@ export function initPageBridge(enabledRef) {
       return;
     }
 
-    if (event.data.type !== MESSAGE_TYPES.skip) {
-      return;
+    if (event.data.type === MESSAGE_TYPES.skip) {
+      record("Anúncio pulado", "skippedVideoAds");
     }
-
-    if (event.data.method === SKIP_METHODS.click) {
-      record("Botão Pular acionado", "skippedVideoAds");
-      return;
-    }
-
-    record("Anúncio em vídeo pulado", "skippedVideoAds");
   });
 }
 
-export function watchEnabledChanges(onChange) {
+export function watchEnabled(onChange) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local" || !changes[STORAGE_KEYS.enabled]) {
       return;
     }
 
-    onChange(changes[STORAGE_KEYS.enabled].newValue !== false);
+    const enabled = changes[STORAGE_KEYS.enabled].newValue !== false;
+    onChange(enabled);
   });
 }
+
+export { applyEnabled };

@@ -1,382 +1,102 @@
 (() => {
-  // src/shared/constants.js
-  var MESSAGE_SOURCE = "youtube-clean-player";
-  var STORAGE_KEYS = {
-    enabled: "enabled",
-    status: "cleanPlayerStatus"
-  };
-  var DATASET_KEYS = {
-    enabled: "cleanPlayerEnabled",
-    skipLoaded: "cleanPlayerSkipLoaded"
-  };
-  var MESSAGE_TYPES = {
-    skip: "skip",
-    trustedClick: "trusted-click"
-  };
-  var SKIP_METHODS = {
-    click: "click",
-    seek: "seek"
-  };
-  var RUNTIME_ACTIONS = {
-    trustedClick: "trustedClick"
-  };
-
-  // src/content/stats.js
-  var defaultStatus = {
-    pageActions: 0,
-    skippedVideoAds: 0,
-    hiddenPromotions: 0,
-    lastAction: "Extens\xE3o iniciada",
-    updatedAt: Date.now()
-  };
-  var state = { ...defaultStatus };
-  var saveTimer;
-  function record(action, field) {
-    state.pageActions += 1;
-    state[field] += 1;
-    state.lastAction = action;
-    saveStatus();
-  }
-  function saveStatus() {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      state.updatedAt = Date.now();
-      chrome.storage.local.set({ [STORAGE_KEYS.status]: state }, () => {
-        void chrome.runtime.lastError;
-      });
-    }, 100);
-  }
-  async function loadEnabledState() {
-    const stored = await chrome.storage.local.get(STORAGE_KEYS.enabled);
-    return stored[STORAGE_KEYS.enabled] !== false;
-  }
-  function bootstrapStats() {
-    saveStatus();
-  }
-
-  // src/shared/selectors.js
-  var AD_UI_SELECTORS = [
-    ".ytp-ad-overlay-container",
-    ".ytp-ad-message-container",
-    ".ytp-ad-player-overlay",
-    "#masthead-ad",
-    "ytd-ad-slot-renderer",
-    "ytd-banner-promo-renderer",
-    "ytd-display-ad-renderer",
-    "ytd-in-feed-ad-layout-renderer",
-    "ytd-promoted-sparkles-web-renderer",
-    "ytd-promoted-video-renderer",
-    "ytd-statement-banner-renderer"
-  ];
-  var MODAL_BACKDROP_SELECTORS = ["tp-yt-iron-overlay-backdrop"];
-  var IDLE_PROMPT_PATTERNS = [
-    /v[ií]deo pausado/i,
-    /quer continuar assistindo/i,
-    /continue watching/i,
-    /still watching/i
-  ];
-  var IDLE_CONFIRM_SELECTORS = [
-    "yt-confirm-dialog-renderer #confirm-button button",
-    "yt-confirm-dialog-renderer #confirm-button #button",
-    "yt-confirm-dialog-renderer #confirm-button"
-  ];
-  var PLAYER_SELECTORS = {
-    active: "#movie_player.html5-video-player, .html5-video-player.ad-showing, .html5-video-player.ad-interrupting",
-    adPlaying: ".html5-video-player.ad-showing, .html5-video-player.ad-interrupting",
-    root: "#movie_player, .html5-video-player",
-    video: "video.html5-main-video, video",
-    adLabel: ".ytp-ad-pod-index, .ytp-ad-text, .ytp-ad-preview-text"
-  };
-
-  // src/content/cosmetic.js
-  var observer;
-  var intervalId;
-  var inspectScheduled = false;
-  var isInspecting = false;
-  var lastIdleConfirmAt = 0;
-  var IDLE_CONFIRM_COOLDOWN_MS = 2e3;
-  function isElementVisible(element) {
-    if (!element || !element.isConnected) {
-      return false;
-    }
-    try {
-      const style = window.getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-      return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
-    } catch {
-      return false;
-    }
-  }
-  function hideElement(element) {
-    if (element.dataset.cleanPlayerHandled === "true") {
-      return false;
-    }
-    element.dataset.cleanPlayerHandled = "true";
-    element.style.setProperty("display", "none", "important");
-    return true;
-  }
-  function hidePromotionalElements() {
-    for (const selector of AD_UI_SELECTORS) {
-      document.querySelectorAll(selector).forEach((element) => {
-        if (!isElementVisible(element)) {
-          return;
+  // src/content.js
+  (function() {
+    "use strict";
+    var LS_ON = "_c0";
+    var LS_SKIP = "_c1";
+    var LEGACY_KEYS = ["ycp_enabled", "ycp_alive", "ycp_token"];
+    var MESSAGE_SOURCE = "youtube-clean-player";
+    var TRUSTED_CLICK = "trusted-click";
+    function clearLegacyKeys() {
+      for (var i = 0; i < LEGACY_KEYS.length; i++) {
+        try {
+          localStorage.removeItem(LEGACY_KEYS[i]);
+        } catch (e) {
         }
-        if (hideElement(element)) {
-          record("Promo\xE7\xE3o visual ocultada", "hiddenPromotions");
-        }
-      });
-    }
-  }
-  function unlockPageScroll() {
-    document.documentElement.removeAttribute("aria-hidden");
-    document.body.style.removeProperty("overflow");
-    document.documentElement.style.removeProperty("overflow");
-  }
-  function findVisibleEnforcementRoot() {
-    for (const dialog of document.querySelectorAll("tp-yt-paper-dialog")) {
-      if (!dialog.querySelector(".ytd-enforcement-message-view-model")) {
-        continue;
-      }
-      if (isElementVisible(dialog) || dialog.hasAttribute("opened")) {
-        return dialog;
       }
     }
-    const model = document.querySelector("ytd-enforcement-message-view-model");
-    if (model && isElementVisible(model)) {
-      return model;
-    }
-    return null;
-  }
-  function releaseEnforcementBackdrops() {
-    for (const selector of MODAL_BACKDROP_SELECTORS) {
-      document.querySelectorAll(`${selector}[opened]`).forEach((element) => {
-        element.removeAttribute("opened");
-        element.classList.remove("opened");
-      });
-    }
-  }
-  function resumeVideoAfterEnforcement() {
-    const video = document.querySelector(PLAYER_SELECTORS.video);
-    if (!video || !video.paused) {
-      return;
-    }
-    const playAttempt = video.play();
-    if (playAttempt?.catch) {
-      playAttempt.catch(() => {
-      });
-    }
-  }
-  function isPaperDialog(element) {
-    return element?.tagName?.toLowerCase() === "tp-yt-paper-dialog";
-  }
-  function isIdlePromptDialog(element) {
-    const text = element?.textContent || "";
-    return IDLE_PROMPT_PATTERNS.some((pattern) => pattern.test(text));
-  }
-  function findIdlePromptDialog() {
-    const renderer = document.querySelector("yt-confirm-dialog-renderer");
-    if (renderer && isElementVisible(renderer) && isIdlePromptDialog(renderer)) {
-      return renderer;
-    }
-    for (const dialog of document.querySelectorAll("tp-yt-paper-dialog, ytd-popup-container")) {
-      if (isElementVisible(dialog) && isIdlePromptDialog(dialog)) {
-        return dialog;
+    function syncFlags(enabled, autoSkip) {
+      try {
+        localStorage.setItem(LS_ON, enabled === false ? "0" : "1");
+        localStorage.setItem(LS_SKIP, autoSkip === true ? "1" : "0");
+      } catch (e) {
       }
     }
-    return null;
-  }
-  function findIdleConfirmButton(root) {
-    for (const selector of IDLE_CONFIRM_SELECTORS) {
-      const element = root.querySelector(selector);
-      if (element && isElementVisible(element)) {
-        return element;
-      }
-    }
-    for (const element of root.querySelectorAll("button, paper-button, yt-button-renderer a")) {
-      const label = `${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`.trim();
-      if (!/^(sim|yes|ok)$/i.test(label)) {
-        continue;
-      }
-      if (isElementVisible(element)) {
-        return element;
-      }
-    }
-    return null;
-  }
-  function dismissIdlePrompt() {
-    const dialog = findIdlePromptDialog();
-    if (!dialog) {
-      return;
-    }
-    const now = Date.now();
-    if (now - lastIdleConfirmAt < IDLE_CONFIRM_COOLDOWN_MS) {
-      return;
-    }
-    const confirmButton = findIdleConfirmButton(dialog);
-    if (!confirmButton) {
-      return;
-    }
-    lastIdleConfirmAt = now;
-    confirmButton.click();
-    unlockPageScroll();
-    resumeVideoAfterEnforcement();
-  }
-  function dismissEnforcementModal() {
-    const enforcementRoot = findVisibleEnforcementRoot();
-    if (!enforcementRoot) {
-      unlockPageScroll();
-      return;
-    }
-    if (hideElement(enforcementRoot)) {
-      releaseEnforcementBackdrops();
-      unlockPageScroll();
-      resumeVideoAfterEnforcement();
-      return;
-    }
-    if (isPaperDialog(enforcementRoot)) {
-      const model = enforcementRoot.querySelector(".ytd-enforcement-message-view-model");
-      if (model && hideElement(model)) {
-        hideElement(enforcementRoot);
-        releaseEnforcementBackdrops();
-        unlockPageScroll();
-        resumeVideoAfterEnforcement();
-      }
-    }
-  }
-  function runInspectPage() {
-    if (isInspecting) {
-      return;
-    }
-    isInspecting = true;
-    try {
-      dismissEnforcementModal();
-      dismissIdlePrompt();
-      hidePromotionalElements();
-    } catch {
-    } finally {
-      isInspecting = false;
-    }
-  }
-  function scheduleInspectPage() {
-    if (inspectScheduled) {
-      return;
-    }
-    inspectScheduled = true;
-    requestAnimationFrame(() => {
-      inspectScheduled = false;
-      runInspectPage();
+    clearLegacyKeys();
+    chrome.storage.local.get({ enabled: true, autoSkip: true }, function(stored) {
+      syncFlags(stored.enabled, stored.autoSkip);
     });
-  }
-  function startCosmeticObserver() {
-    if (observer) {
-      return;
-    }
-    observer = new MutationObserver(scheduleInspectPage);
-    observer.observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["class", "opened", "aria-hidden"]
-    });
-    intervalId = window.setInterval(runInspectPage, 1e3);
-    runInspectPage();
-  }
-  function stopCosmeticObserver() {
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
-    if (intervalId) {
-      window.clearInterval(intervalId);
-      intervalId = null;
-    }
-  }
-
-  // src/content/injector.js
-  var PAGE_ENTRY = "dist/page.js";
-  function injectPageScript() {
-    if (document.documentElement.dataset[DATASET_KEYS.skipLoaded] === "true") {
-      return;
-    }
-    document.documentElement.dataset[DATASET_KEYS.skipLoaded] = "true";
-    const script = document.createElement("script");
-    script.src = chrome.runtime.getURL(PAGE_ENTRY);
-    script.onload = () => script.remove();
-    script.onerror = () => {
-      document.documentElement.dataset[DATASET_KEYS.skipLoaded] = "false";
-      script.remove();
-    };
-    (document.head || document.documentElement).appendChild(script);
-  }
-
-  // src/content/bridge.js
-  function syncEnabledFlag(enabled) {
-    document.documentElement.dataset[DATASET_KEYS.enabled] = enabled ? "true" : "false";
-  }
-  function initPageBridge(enabledRef2) {
-    window.addEventListener("message", (event) => {
-      if (event.source !== window || event.data?.source !== MESSAGE_SOURCE) {
+    chrome.storage.onChanged.addListener(function(changes, area) {
+      if (area !== "local") {
         return;
       }
-      if (event.data.type === MESSAGE_TYPES.trustedClick) {
-        if (!enabledRef2.current) {
-          return;
-        }
-        if (!chrome.runtime?.id) {
-          return;
-        }
-        chrome.runtime.sendMessage(
-          {
-            action: RUNTIME_ACTIONS.trustedClick,
-            rect: event.data.rect
-          },
-          () => {
-            void chrome.runtime.lastError;
+      if (!changes.enabled && !changes.autoSkip) {
+        return;
+      }
+      chrome.storage.local.get({ enabled: true, autoSkip: true }, function(stored) {
+        syncFlags(stored.enabled, stored.autoSkip);
+      });
+    });
+    function recordSkip() {
+      updateStatus(function(status) {
+        return {
+          skippedVideoAds: (status.skippedVideoAds || 0) + 1,
+          lastAction: "Anuncio pulado"
+        };
+      });
+    }
+    function recordClickError(error) {
+      updateStatus(function(status) {
+        return {
+          skippedVideoAds: status.skippedVideoAds || 0,
+          lastAction: "Clique falhou: " + (error || "sem resposta")
+        };
+      });
+    }
+    function updateStatus(makeStatus) {
+      chrome.storage.local.get(
+        {
+          status: {
+            skippedVideoAds: 0,
+            lastAction: "Abra um v\xEDdeo do YouTube para testar."
           }
-        );
-        return;
-      }
-      if (event.data.type !== MESSAGE_TYPES.skip) {
-        return;
-      }
-      if (event.data.method === SKIP_METHODS.click) {
-        record("Bot\xE3o de pular an\xFAncio acionado", "skippedVideoAds");
-        return;
-      }
-      record("Reprodu\xE7\xE3o de an\xFAncio avan\xE7ada", "skippedVideoAds");
-    });
-  }
-  function watchEnabledChanges(onChange) {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "local" || !changes[STORAGE_KEYS.enabled]) {
-        return;
-      }
-      onChange(changes[STORAGE_KEYS.enabled].newValue !== false);
-    });
-  }
-
-  // src/content/index.js
-  var enabledRef = { current: true };
-  function applyEnabledState(enabled) {
-    enabledRef.current = enabled;
-    syncEnabledFlag(enabled);
-    if (enabled) {
-      startCosmeticObserver();
-    } else {
-      stopCosmeticObserver();
+        },
+        function(stored) {
+          var status = stored.status || {};
+          chrome.storage.local.set({ status: makeStatus(status) });
+        }
+      );
     }
-  }
-  async function start() {
-    bootstrapStats();
-    injectPageScript();
-    initPageBridge(enabledRef);
-    const enabled = await loadEnabledState();
-    applyEnabledState(enabled);
-    watchEnabledChanges(applyEnabledState);
-  }
-  if (document.documentElement) {
-    start();
-  } else {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
-  }
+    function validRect(rect) {
+      return rect && typeof rect.x === "number" && typeof rect.y === "number" && typeof rect.width === "number" && typeof rect.height === "number" && rect.width > 0 && rect.height > 0;
+    }
+    function requestTrustedClick(rect) {
+      chrome.runtime.sendMessage(
+        {
+          action: "trustedClick",
+          rect
+        },
+        function(response) {
+          if (chrome.runtime.lastError) {
+            recordClickError(chrome.runtime.lastError.message);
+            return;
+          }
+          if (!response || response.ok !== true) {
+            recordClickError(response && response.error);
+            return;
+          }
+          recordSkip();
+        }
+      );
+    }
+    window.addEventListener("message", function(event) {
+      if (event.source !== window || !event.data || event.data.source !== MESSAGE_SOURCE) {
+        return;
+      }
+      if (event.data.type !== TRUSTED_CLICK || !validRect(event.data.rect)) {
+        return;
+      }
+      requestTrustedClick(event.data.rect);
+    });
+  })();
 })();

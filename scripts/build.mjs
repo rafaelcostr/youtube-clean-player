@@ -1,50 +1,40 @@
+import { cpSync, copyFileSync, mkdirSync } from "node:fs";
 import * as esbuild from "esbuild";
-import { cpSync, mkdirSync } from "node:fs";
 
 mkdirSync("dist/popup", { recursive: true });
 
+copyFileSync("src/player.js", "dist/player.js");
 cpSync("src/popup/popup.html", "dist/popup/popup.html");
 cpSync("src/popup/popup.css", "dist/popup/popup.css");
 
-const shared = {
+await esbuild.build({
   bundle: true,
   platform: "browser",
   target: "chrome109",
+  entryPoints: ["src/background/index.js"],
+  outfile: "dist/background.js",
+  format: "esm",
   logLevel: "info"
-};
+});
 
-const builds = [
-  {
-    ...shared,
-    entryPoints: ["src/background/index.js"],
-    outfile: "dist/background.js",
-    format: "esm"
-  },
-  {
-    ...shared,
-    entryPoints: ["src/content/index.js"],
-    outfile: "dist/content.js",
-    format: "iife"
-  },
-  {
-    ...shared,
-    entryPoints: ["src/page/index.js"],
-    outfile: "dist/page.js",
-    format: "iife"
-  },
-  {
-    ...shared,
-    entryPoints: ["src/popup/popup.js"],
-    outfile: "dist/popup/popup.js",
-    format: "iife"
-  }
-];
+await esbuild.build({
+  bundle: true,
+  platform: "browser",
+  target: "chrome109",
+  entryPoints: ["src/content.js"],
+  outfile: "dist/content.js",
+  format: "iife",
+  logLevel: "info"
+});
 
-if (process.argv.includes("--watch")) {
-  const contexts = await Promise.all(builds.map((options) => esbuild.context(options)));
-  await Promise.all(contexts.map((context) => context.watch()));
-  console.log("Watch ativo: dist/");
-} else {
-  await Promise.all(builds.map((options) => esbuild.build(options)));
-  console.log("Build concluído: dist/");
-}
+await esbuild.build({
+  bundle: true,
+  platform: "browser",
+  target: "chrome109",
+  entryPoints: ["src/popup/popup.js"],
+  outfile: "dist/popup/popup.js",
+  format: "iife",
+  logLevel: "info"
+});
+
+console.log("Build concluído: dist/");

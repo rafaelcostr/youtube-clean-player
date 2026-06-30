@@ -1,35 +1,13 @@
 // src/shared/constants.js
 var STORAGE_KEYS = {
   enabled: "enabled",
-  status: "cleanPlayerStatus"
+  autoSkip: "autoSkip",
+  status: "status"
 };
-var RULESET_ID = "ads";
-var CLICK_COOLDOWN_MS = 280;
+var CLICK_COOLDOWN_MS = 1500;
 var RUNTIME_ACTIONS = {
   trustedClick: "trustedClick"
 };
-
-// src/background/network-rules.js
-async function applyNetworkBlocking(enabled) {
-  await chrome.declarativeNetRequest.updateEnabledRulesets({
-    enableRulesetIds: enabled ? [RULESET_ID] : [],
-    disableRulesetIds: enabled ? [] : [RULESET_ID]
-  });
-}
-async function syncNetworkRulesFromStorage() {
-  const { [STORAGE_KEYS.enabled]: enabled = true } = await chrome.storage.local.get(STORAGE_KEYS.enabled);
-  await applyNetworkBlocking(enabled !== false);
-}
-function initNetworkRules() {
-  chrome.runtime.onInstalled.addListener(syncNetworkRulesFromStorage);
-  chrome.runtime.onStartup.addListener(syncNetworkRulesFromStorage);
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || !changes[STORAGE_KEYS.enabled]) {
-      return;
-    }
-    applyNetworkBlocking(changes[STORAGE_KEYS.enabled].newValue !== false);
-  });
-}
 
 // src/background/trusted-click.js
 var attachedTabs = /* @__PURE__ */ new Set();
@@ -44,6 +22,10 @@ function debuggerCall(method, ...args) {
       resolve(result);
     });
   });
+}
+function clearTabState(tabId) {
+  attachedTabs.delete(tabId);
+  lastClickAtByTab.delete(tabId);
 }
 async function trustedClick(tabId, rect) {
   const now = Date.now();
@@ -79,9 +61,11 @@ async function trustedClick(tabId, rect) {
       y,
       clickCount: 1
     });
+    await debuggerCall(chrome.debugger.detach, target);
+    attachedTabs.delete(tabId);
     return { ok: true };
   } catch (error) {
-    attachedTabs.delete(tabId);
+    clearTabState(tabId);
     try {
       await debuggerCall(chrome.debugger.detach, target);
     } catch {
@@ -92,11 +76,19 @@ async function trustedClick(tabId, rect) {
 function initTrustedClick() {
   chrome.debugger.onDetach.addListener((source) => {
     if (source.tabId) {
-      attachedTabs.delete(source.tabId);
+      clearTabState(source.tabId);
     }
+  });
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    clearTabState(tabId);
   });
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action !== RUNTIME_ACTIONS.trustedClick || !sender.tab?.id) {
+      return false;
+    }
+    const url = sender.url || sender.tab.url || "";
+    if (url && !/^https:\/\/(www\.|m\.)?youtube\.com\//.test(url)) {
+      sendResponse({ ok: false, error: "Invalid tab" });
       return false;
     }
     chrome.storage.local.get(STORAGE_KEYS.enabled, async ({ [STORAGE_KEYS.enabled]: enabled = true }) => {
@@ -104,7 +96,12 @@ function initTrustedClick() {
         sendResponse({ ok: false, disabled: true });
         return;
       }
-      const result = await trustedClick(sender.tab.id, message.rect);
+      const rect = message.rect;
+      if (!rect || typeof rect !== "object") {
+        sendResponse({ ok: false, error: "Invalid rect" });
+        return;
+      }
+      const result = await trustedClick(sender.tab.id, rect);
       sendResponse(result);
     });
     return true;
@@ -112,5 +109,4 @@ function initTrustedClick() {
 }
 
 // src/background/index.js
-initNetworkRules();
 initTrustedClick();

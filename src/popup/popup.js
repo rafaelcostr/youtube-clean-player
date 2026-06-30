@@ -1,10 +1,9 @@
-import { NETWORK_RULES_COUNT, STORAGE_KEYS } from "../shared/constants.js";
+import { STORAGE_KEYS } from "../shared/constants.js";
 
 const enabledInput = document.getElementById("enabled");
+const autoSkipInput = document.getElementById("autoSkip");
 const statusText = document.getElementById("statusText");
 const skipped = document.getElementById("skipped");
-const hidden = document.getElementById("hidden");
-const blocked = document.getElementById("blocked");
 const lastAction = document.getElementById("lastAction");
 
 function updateStatusUi(isEnabled) {
@@ -18,23 +17,27 @@ function updateStatsUi(status) {
   }
 
   skipped.textContent = status.skippedVideoAds || 0;
-  hidden.textContent = status.hiddenPromotions || 0;
   lastAction.textContent = status.lastAction || lastAction.textContent;
 }
 
-blocked.textContent = `${NETWORK_RULES_COUNT} regras`;
-
-chrome.storage.local.get([STORAGE_KEYS.enabled, STORAGE_KEYS.status], (stored) => {
-  const enabled = stored[STORAGE_KEYS.enabled] !== false;
-  enabledInput.checked = enabled;
-  updateStatusUi(enabled);
-  updateStatsUi(stored[STORAGE_KEYS.status]);
-});
+chrome.storage.local.get(
+  [STORAGE_KEYS.enabled, STORAGE_KEYS.autoSkip, STORAGE_KEYS.status],
+  (stored) => {
+    const isEnabled = stored[STORAGE_KEYS.enabled] !== false;
+    enabledInput.checked = isEnabled;
+    autoSkipInput.checked = stored[STORAGE_KEYS.autoSkip] !== false;
+    updateStatusUi(isEnabled);
+    updateStatsUi(stored[STORAGE_KEYS.status]);
+  }
+);
 
 enabledInput.addEventListener("change", async () => {
-  const isEnabled = enabledInput.checked;
-  await chrome.storage.local.set({ [STORAGE_KEYS.enabled]: isEnabled });
-  updateStatusUi(isEnabled);
+  await chrome.storage.local.set({ [STORAGE_KEYS.enabled]: enabledInput.checked });
+  updateStatusUi(enabledInput.checked);
+});
+
+autoSkipInput.addEventListener("change", async () => {
+  await chrome.storage.local.set({ [STORAGE_KEYS.autoSkip]: autoSkipInput.checked });
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -46,6 +49,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
     const isEnabled = changes[STORAGE_KEYS.enabled].newValue !== false;
     enabledInput.checked = isEnabled;
     updateStatusUi(isEnabled);
+  }
+
+  if (changes[STORAGE_KEYS.autoSkip]) {
+    autoSkipInput.checked = changes[STORAGE_KEYS.autoSkip].newValue !== false;
   }
 
   if (changes[STORAGE_KEYS.status]) {
