@@ -11,16 +11,6 @@ await esbuild.build({
   bundle: true,
   platform: "browser",
   target: "chrome109",
-  entryPoints: ["src/background/index.js"],
-  outfile: "dist/background.js",
-  format: "esm",
-  logLevel: "info"
-});
-
-await esbuild.build({
-  bundle: true,
-  platform: "browser",
-  target: "chrome109",
   entryPoints: ["src/content.js"],
   outfile: "dist/content.js",
   format: "iife",

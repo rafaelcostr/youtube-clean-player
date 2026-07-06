@@ -3,11 +3,7 @@
   "name": "YouTube Clean Player",
   "version": "1.3.3",
   "description": "Silencia anúncios, restaura o som e pula quando disponível.",
-  "permissions": ["storage", "debugger"],
-  "background": {
-    "service_worker": "dist/background.js",
-    "type": "module"
-  },
+  "permissions": ["storage"],
   "action": {
     "default_title": "YouTube Clean Player",
     "default_popup": "dist/popup/popup.html"

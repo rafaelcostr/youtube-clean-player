@@ -1,6 +1,8 @@
 export const STORAGE_KEYS = {
   enabled: "enabled",
   autoSkip: "autoSkip",
+  autoClick: "autoClick",
+  speed: "speed",
   status: "status"
 };
 

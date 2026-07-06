@@ -3,12 +3,16 @@
   var STORAGE_KEYS = {
     enabled: "enabled",
     autoSkip: "autoSkip",
+    autoClick: "autoClick",
+    speed: "speed",
     status: "status"
   };
 
   // src/popup/popup.js
   var enabledInput = document.getElementById("enabled");
   var autoSkipInput = document.getElementById("autoSkip");
+  var autoClickInput = document.getElementById("autoClick");
+  var speedInput = document.getElementById("speed");
   var statusText = document.getElementById("statusText");
   var skipped = document.getElementById("skipped");
   var lastAction = document.getElementById("lastAction");
@@ -24,11 +28,13 @@
     lastAction.textContent = status.lastAction || lastAction.textContent;
   }
   chrome.storage.local.get(
-    [STORAGE_KEYS.enabled, STORAGE_KEYS.autoSkip, STORAGE_KEYS.status],
+    [STORAGE_KEYS.enabled, STORAGE_KEYS.autoSkip, STORAGE_KEYS.autoClick, STORAGE_KEYS.speed, STORAGE_KEYS.status],
     (stored) => {
       const isEnabled = stored[STORAGE_KEYS.enabled] !== false;
       enabledInput.checked = isEnabled;
       autoSkipInput.checked = stored[STORAGE_KEYS.autoSkip] !== false;
+      autoClickInput.checked = stored[STORAGE_KEYS.autoClick] === true;
+      speedInput.value = String(stored[STORAGE_KEYS.speed] || 2);
       updateStatusUi(isEnabled);
       updateStatsUi(stored[STORAGE_KEYS.status]);
     }
@@ -39,6 +45,12 @@
   });
   autoSkipInput.addEventListener("change", async () => {
     await chrome.storage.local.set({ [STORAGE_KEYS.autoSkip]: autoSkipInput.checked });
+  });
+  autoClickInput.addEventListener("change", async () => {
+    await chrome.storage.local.set({ [STORAGE_KEYS.autoClick]: autoClickInput.checked });
+  });
+  speedInput.addEventListener("change", async () => {
+    await chrome.storage.local.set({ [STORAGE_KEYS.speed]: parseFloat(speedInput.value) });
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") {
@@ -51,6 +63,12 @@
     }
     if (changes[STORAGE_KEYS.autoSkip]) {
       autoSkipInput.checked = changes[STORAGE_KEYS.autoSkip].newValue !== false;
+    }
+    if (changes[STORAGE_KEYS.autoClick]) {
+      autoClickInput.checked = changes[STORAGE_KEYS.autoClick].newValue === true;
+    }
+    if (changes[STORAGE_KEYS.speed]) {
+      speedInput.value = String(changes[STORAGE_KEYS.speed].newValue || 2);
     }
     if (changes[STORAGE_KEYS.status]) {
       updateStatsUi(changes[STORAGE_KEYS.status].newValue);

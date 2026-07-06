@@ -30,6 +30,25 @@ h1 {
   accent-color: #49d17d;
 }
 
+.speed {
+  align-items: center;
+  background: #202020;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 10px;
+  padding: 10px;
+}
+
+.speed select {
+  background: #111;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  color: #f5f5f5;
+  font: inherit;
+  padding: 4px 8px;
+}
+
 .hint {
   color: #888;
   font-size: 11px;
